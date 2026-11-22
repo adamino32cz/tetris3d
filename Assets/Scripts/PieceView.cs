@@ -46,6 +46,32 @@ public class PieceView
         }
     }
 
+    // Náhled: kostky v lokálních souřadnicích, vycentrované k rootu (ne do šachty).
+    public void SetLocal(Vector3Int[] local, Color color)
+    {
+        ghost = false;
+        Show();
+        int n = local.Length;
+        Vector3 stred = Vector3.zero;
+        for (int i = 0; i < n; i++) stred += (Vector3)(Vector3Int)local[i];
+        if (n > 0) stred /= n;
+        while (cubes.Count < n)
+            cubes.Add(KostkaVisual.MakeCube(root, Vector3.zero, KostkaVisual.Lit(color)));
+        for (int i = 0; i < cubes.Count; i++)
+        {
+            bool on = i < n;
+            cubes[i].SetActive(on);
+            if (!on) continue;
+            cubes[i].transform.localPosition = (Vector3)(Vector3Int)local[i] - stred;
+            cubes[i].transform.localRotation = Quaternion.identity;
+            cubes[i].transform.localScale = Vector3.one * KostkaVisual.CubeScale;
+            var mr = cubes[i].GetComponent<MeshRenderer>();
+            mr.sharedMaterial = KostkaVisual.Lit(color);
+            mr.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
+            mr.receiveShadows = false;
+        }
+    }
+
     public void SetWorld(IList<Vector3Int> cells, Color color, bool asGhost)
     {
         ghost = asGhost;

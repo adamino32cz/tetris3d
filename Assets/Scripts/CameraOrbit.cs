@@ -10,6 +10,7 @@ public class CameraOrbit : MonoBehaviour
     public float distance = 17.5f;
     public float targetYaw = 38f;
     public bool autoOrbit;
+    public float shake;
 
     public Vector3Int ForwardAxis { get; private set; }
     public Vector3Int RightAxis { get; private set; }
@@ -54,7 +55,13 @@ public class CameraOrbit : MonoBehaviour
 
         Vector3 look = pivot != null ? pivot.position : new Vector3(0f, 5.5f, 0f);
         var rot = Quaternion.Euler(pitch, yaw, 0f);
-        transform.position = look + rot * new Vector3(0f, 0f, -distance);
+        Vector3 pos = look + rot * new Vector3(0f, 0f, -distance);
+        if (shake > 0f)
+        {
+            pos += Random.insideUnitSphere * shake;
+            shake = Mathf.MoveTowards(shake, 0f, dt * 2.2f);
+        }
+        transform.position = pos;
         transform.LookAt(look + Vector3.up * 0.4f);
         UpdateAxes();
     }

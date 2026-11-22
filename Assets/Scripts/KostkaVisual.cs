@@ -66,6 +66,15 @@ public static class KostkaVisual
         return m;
     }
 
+    public static Material Unlit(Color c)
+    {
+        Init();
+        var m = NewFrom(unlitTemplate);
+        SetColor(m, c);
+        if (c.a < 0.99f) MakeTransparent(m, c.a);
+        return m;
+    }
+
     public static Material Ghost(Color c)
     {
         Init();

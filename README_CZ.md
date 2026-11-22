@@ -1,6 +1,6 @@
 # KOSTKA — 3D skládačka
 
-3D Tetris ve stylu klasického Blockoutu: do šachty 7×7×15 padají prostorové kousky, otáčíš je kolem všech tří os a mažeš celá patra.
+3D Tetris ve stylu klasického Blockoutu: do šachty 7×7×15 padají prostorové kousky, otáčíš je kolem všech tří os a mažeš **řady** (7 kostek vedle sebe v patře, ve směru X nebo Z). Když se zaplní celé patro, dostaneš bonus.
 
 Hrát v prohlížeči: https://adamino32cz.github.io/tetris3d/
 
@@ -8,27 +8,34 @@ Repozitář: https://github.com/adamino32cz/tetris3d
 
 ## Ovládání
 
+Tabulka je ve hře pořád vidět v levém dolním rohu.
+
 | Akce | Klávesy |
 |---|---|
 | Pohyb (4 strany) | **WASD** nebo **šipky** (relativně ke kameře) |
+| Otočení kolem svislé osy | **Q / E** |
+| Překlopit vpřed / vzad | **Shift + W / S** (vůči kameře) |
+| Překlopit do strany | **Shift + A / D** (vůči kameře) |
 | Rychlý pád | **Mezerník** |
-| Pomalý pád | **Shift** |
-| Otáčení kolem os | **Q / E** (svislá), **R / F**, **Z / X** (na české klávesnici jde i **Y** místo Z) |
+| Pomalý pád | **Ctrl** |
 | Kamera | pravé tlačítko myši, **1 / 2** pootočí o 90° |
 | Pauza | **P** |
+| Jumpscare zap / vyp | **J** (nastavení se pamatuje) |
 | Start / znovu | **Enter** nebo **Mezerník** (na titulce a po konci hry) |
 
-Cíl: skládej kousky, zaplňuj celá patra (7×7) a sbírej body. Za víc pater najednou je kombo. Rychlost roste s levelem (každých 8 pater). Rekord se ukládá v prohlížeči / v počítači.
+Starší klávesy **R / F** a **Z / X** (na české klávesnici i **Y**) pořád otáčejí kolem světových os.
 
-Pomůcky: průhledný stín kusu na místě dopadu, mřížka na stěnách šachty, náhled dalšího kusu.
+Cíl: skládej kousky a zaplňuj řady o 7 kostkách. Za víc řad najednou je kombo, za celé patro bonus. Rychlost roste s levelem (každých 8 řad). Rekord se ukládá v prohlížeči / v počítači.
+
+Když smažeš řadu, na chvíli vyskočí pavouk (jde vypnout klávesou **J**).
+
+Pomůcky: průhledný stín kusu na místě dopadu, mřížka na stěnách šachty, náhled dalšího kusu, tabulka ovládání.
 
 ## Jak otevřít projekt v Unity
 
-Potřebuješ **Unity 2022.3.62f3** (stejná verze jako u hada). Otevři složku projektu `tetris3d`. Scéna je `Assets/Scenes/Kostka.unity`. Pokud scéna chybí, v menu zvol **Tools → Kostka → Vytvořit scénu**.
+Potřebuješ **Unity 2022.3.62f3**. Otevři složku projektu `tetris3d`. Scéna je `Assets/Scenes/Kostka.unity`. Pokud scéna chybí, v menu zvol **Tools → Kostka → Vytvořit scénu**.
 
 ## Sestavení
-
-Z editoru nebo z příkazové řádky (Unity musí být nainstalované):
 
 ```bash
 # Linux přehrávač → Build/Linux/Kostka.x86_64
@@ -37,7 +44,7 @@ Unity -batchmode -nographics -quit -projectPath . \
 
 # WebGL → Build/WebGL
 Unity -batchmode -nographics -quit -projectPath . -buildTarget WebGL \
-  -executeMethod TetrisBatch.BuildSceneAndWebGL
+  -executeMethod TetrisBatch.BuildWebGL
 ```
 
 Hotový WebGL se nahraje na GitHub Pages skriptem `Tools/publish_webgl.sh`. Když už build máš, stačí `SKIP_BUILD=1 Tools/publish_webgl.sh`.
@@ -46,4 +53,4 @@ Hotový WebGL se nahraje na GitHub Pages skriptem `Tools/publish_webgl.sh`. Kdy�
 
 - Grafika je záměrně jiná než u hada: světlé pastelové kostky, krémové pozadí, měkké stíny.
 - Ve hře je 8 tvarů (tyčka, čtverec, elko, téčko, es, roh, šroub, kříž).
-- Testovací parametry přehrávače: `-autoplay`, `-screenshots`, `-shotdir <složka>`, `-demo`.
+- Testovací parametry přehrávače: `-autoplay`, `-screenshots`, `-shotdir <složka>`, `-demo`, `-jumpscare`.

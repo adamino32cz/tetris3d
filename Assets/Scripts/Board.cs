@@ -1,7 +1,7 @@
 using System.Collections.Generic;
 using UnityEngine;
 
-// Šachta 7×7×15: obsazenost, kolize a mazání plných pater.
+// Šachta 7×7×15: obsazenost, kolize a mazání plných řad (7 kostek v X nebo Z).
 public class Board
 {
     public const int W = 7;
@@ -10,6 +10,14 @@ public class Board
 
     // 0 = prázdné, jinak index tvaru + 1
     readonly int[,,] cells = new int[W, H, D];
+
+    // Řada = 7 kostek v jednom patře: buď podél X (pevné z), nebo podél Z (pevné x).
+    public struct Rada
+    {
+        public int y;
+        public bool podelX;
+        public int pevna;
+    }
 
     public void Reset()
     {
@@ -53,44 +61,88 @@ public class Board
         }
     }
 
-    // Vrátí indexy plných pater (zdola nahoru).
-    public List<int> FullLayers()
+    public List<Rada> NajdiPlneRadky()
     {
-        var list = new List<int>();
+        var list = new List<Rada>();
         for (int y = 0; y < H; y++)
         {
-            bool full = true;
-            for (int x = 0; x < W && full; x++)
-            for (int z = 0; z < D && full; z++)
-                if (cells[x, y, z] == 0) full = false;
-            if (full) list.Add(y);
+            for (int z = 0; z < D; z++)
+            {
+                bool full = true;
+                for (int x = 0; x < W && full; x++)
+                    if (cells[x, y, z] == 0) full = false;
+                if (full) list.Add(new Rada { y = y, podelX = true, pevna = z });
+            }
+            for (int x = 0; x < W; x++)
+            {
+                bool full = true;
+                for (int z = 0; z < D && full; z++)
+                    if (cells[x, y, z] == 0) full = false;
+                if (full) list.Add(new Rada { y = y, podelX = false, pevna = x });
+            }
         }
         return list;
     }
 
-    // Smaže uvedená patra a všechno nad nimi posune dolů. Vrací mapování staré Y -> nová Y (pro vizuály).
-    public Dictionary<Vector3Int, Vector3Int> Collapse(List<int> fullYs)
+    public bool JePlnePatro(int y)
     {
-        var move = new Dictionary<Vector3Int, Vector3Int>();
-        if (fullYs == null || fullYs.Count == 0) return move;
+        if (y < 0 || y >= H) return false;
+        for (int x = 0; x < W; x++)
+        for (int z = 0; z < D; z++)
+            if (cells[x, y, z] == 0) return false;
+        return true;
+    }
 
-        var removed = new bool[H];
-        for (int i = 0; i < fullYs.Count; i++)
-            if (fullYs[i] >= 0 && fullYs[i] < H) removed[fullYs[i]] = true;
+    public int PocetPlnychPater()
+    {
+        int n = 0;
+        for (int y = 0; y < H; y++)
+            if (JePlnePatro(y)) n++;
+        return n;
+    }
+
+    // Smaže buňky řad a kostky nad nimi ve stejném sloupci klesnou o počet děr pod nimi.
+    // Předem existující mezery se nezatahují. Vrací mapování stará pozice → nová.
+    public Dictionary<Vector3Int, Vector3Int> SmazASesun(List<Rada> rady, out HashSet<Vector3Int> odstranene)
+    {
+        odstranene = new HashSet<Vector3Int>();
+        var move = new Dictionary<Vector3Int, Vector3Int>();
+        if (rady == null || rady.Count == 0) return move;
+
+        for (int i = 0; i < rady.Count; i++)
+        {
+            var r = rady[i];
+            if (r.podelX)
+            {
+                for (int x = 0; x < W; x++)
+                    odstranene.Add(new Vector3Int(x, r.y, r.pevna));
+            }
+            else
+            {
+                for (int z = 0; z < D; z++)
+                    odstranene.Add(new Vector3Int(r.pevna, r.y, z));
+            }
+        }
 
         var next = new int[W, H, D];
-        int ny = 0;
-        for (int y = 0; y < H; y++)
+        for (int x = 0; x < W; x++)
+        for (int z = 0; z < D; z++)
         {
-            if (removed[y]) continue;
-            for (int x = 0; x < W; x++)
-            for (int z = 0; z < D; z++)
+            int removedBelow = 0;
+            for (int y = 0; y < H; y++)
             {
-                next[x, ny, z] = cells[x, y, z];
-                if (cells[x, y, z] != 0 && ny != y)
-                    move[new Vector3Int(x, y, z)] = new Vector3Int(x, ny, z);
+                var p = new Vector3Int(x, y, z);
+                if (odstranene.Contains(p))
+                {
+                    removedBelow++;
+                    continue;
+                }
+                int val = cells[x, y, z];
+                if (val == 0) continue;
+                int ny = y - removedBelow;
+                next[x, ny, z] = val;
+                if (ny != y) move[p] = new Vector3Int(x, ny, z);
             }
-            ny++;
         }
         System.Array.Clear(cells, 0, cells.Length);
         System.Array.Copy(next, cells, next.Length);

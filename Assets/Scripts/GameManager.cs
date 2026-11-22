@@ -25,9 +25,11 @@ public class GameManager : MonoBehaviour
     public Board board = new Board();
 
     const string PrefRekord = "Kostka.HighScore";
-    const int PatraNaLevel = 8;
+    const string PrefJumpscare = "Kostka.Jumpscare";
+    const int RadNaLevel = 8;
 
-    int skore, rekord, level = 1, patra;
+    int skore, rekord, level = 1, rady;
+    public bool jumpscareZapnuto = true;
     int tvar, dalsiTvar;
     Vector3Int puvod;
     Vector3Int[] lokal;
@@ -48,7 +50,8 @@ public class GameManager : MonoBehaviour
 
     Canvas canvas;
     RectTransform titulka, hud, pauzaPanel, konecPanel;
-    TextMeshProUGUI txtSkore, txtRekord, txtLevel, txtPatra, txtKonecSkore, txtTitulRekord, txtCombo;
+    TextMeshProUGUI txtSkore, txtRekord, txtLevel, txtRady, txtKonecSkore, txtTitulRekord, txtCombo, txtTabulka, txtJsStav;
+    Image jumpscareStin;
     RawImage nahledImg;
 
     public Color BarvaAktivni => PieceShapes.All[tvar].barva;
@@ -59,6 +62,7 @@ public class GameManager : MonoBehaviour
         Application.targetFrameRate = 60;
         QualitySettings.SetQualityLevel(Mathf.Max(0, QualitySettings.names.Length - 1), true);
         rekord = PlayerPrefs.GetInt(PrefRekord, 0);
+        jumpscareZapnuto = PlayerPrefs.GetInt(PrefJumpscare, 1) != 0;
         KostkaVisual.SetTemplates(litTemplate, unlitTemplate);
         KostkaVisual.Init();
         ZajistiPisma();
@@ -93,6 +97,9 @@ public class GameManager : MonoBehaviour
 
     void Update()
     {
+        if (Input.GetKeyDown(KeyCode.J))
+            PrepnoutJumpscare();
+
         if (Input.GetKeyDown(KeyCode.P) && (stav == Stav.Hra || stav == Stav.Pauza))
             PrepnoutPauzu();
 
@@ -113,8 +120,8 @@ public class GameManager : MonoBehaviour
         }
 
         float interval = IntervalPadani();
-        if (Input.GetKey(KeyCode.LeftShift) || Input.GetKey(KeyCode.RightShift))
-            interval = 0.05f;
+        bool soft = Input.GetKey(KeyCode.LeftControl) || Input.GetKey(KeyCode.RightControl);
+        if (soft) interval = 0.05f;
 
         padani += Time.deltaTime;
         if (padani >= interval)
@@ -122,7 +129,7 @@ public class GameManager : MonoBehaviour
             padani = 0f;
             if (!ZkusPosun(Vector3Int.down))
                 Zamknout();
-            else if (Input.GetKey(KeyCode.LeftShift) || Input.GetKey(KeyCode.RightShift))
+            else if (soft)
             {
                 skore += 1;
                 ObnovHud();
@@ -169,7 +176,7 @@ public class GameManager : MonoBehaviour
         board.Reset();
         skore = 0;
         level = 1;
-        patra = 0;
+        rady = 0;
         pytel.Clear();
         dalsiTvar = TahniTvar();
         if (predplnit) PredplnDemo();
@@ -318,8 +325,8 @@ public class GameManager : MonoBehaviour
         StartCoroutine(Punch(nove));
         if (SoundFX.I != null) SoundFX.I.Lock();
 
-        var plna = board.FullLayers();
-        if (plna.Count > 0) StartCoroutine(SmazPatra(plna));
+        var plne = board.NajdiPlneRadky();
+        if (plne.Count > 0) StartCoroutine(SmazRadky(plne));
         else Spawn();
         ObnovHud();
     }
@@ -339,99 +346,116 @@ public class GameManager : MonoBehaviour
             if (list[i] != null) list[i].localScale = Vector3.one * KostkaVisual.CubeScale;
     }
 
-    IEnumerator SmazPatra(List<int> plna)
+    IEnumerator SmazRadky(List<Board.Rada> plne)
     {
         busy = true;
         stav = Stav.Mazani;
-        int n = plna.Count;
-        int plus = n == 1 ? 100 : n == 2 ? 300 : n == 3 ? 500 : n == 4 ? 800 : 1200;
-        plus *= level;
+        int celkemRad = 0;
+        int celkemPater = 0;
+        int plus = 0;
+        bool prvni = true;
+
+        while (plne != null && plne.Count > 0)
+        {
+            int n = plne.Count;
+            int pater = board.PocetPlnychPater();
+            int add = (n == 1 ? 100 : n == 2 ? 300 : n == 3 ? 500 : n == 4 ? 800 : 1200 + (n - 5) * 200) * level;
+            if (pater > 0) add += 500 * pater * level;
+            plus += add;
+            celkemRad += n;
+            celkemPater += pater;
+
+            if (prvni && jumpscareZapnuto)
+                yield return Jumpscare();
+            prvni = false;
+
+            var posun = board.SmazASesun(plne, out var odstranene);
+            var odlet = new List<Transform>();
+            var klice = new List<Vector3Int>(lezici.Keys);
+            for (int i = 0; i < klice.Count; i++)
+            {
+                var c = klice[i];
+                if (!odstranene.Contains(c)) continue;
+                if (lezici.TryGetValue(c, out var tr) && tr != null) odlet.Add(tr);
+                lezici.Remove(c);
+            }
+
+            Vector3 stred = Vector3.zero;
+            int cnt = 0;
+            for (int i = 0; i < odlet.Count; i++)
+            { stred += odlet[i].position; cnt++; }
+            if (cnt > 0) stred /= cnt;
+
+            float tAnim = 0f;
+            var startP = new Vector3[odlet.Count];
+            var vel = new Vector3[odlet.Count];
+            var spin = new Vector3[odlet.Count];
+            for (int i = 0; i < odlet.Count; i++)
+            {
+                startP[i] = odlet[i].position;
+                Vector3 outw = startP[i] - stred; outw.y = 0f;
+                if (outw.sqrMagnitude < 0.01f) outw = Random.insideUnitSphere;
+                outw.y = 0; outw.Normalize();
+                vel[i] = outw * Random.Range(6f, 10f) + Vector3.up * Random.Range(3f, 6f);
+                spin[i] = Random.insideUnitSphere * 360f;
+            }
+            while (tAnim < 0.45f)
+            {
+                tAnim += Time.deltaTime;
+                for (int i = 0; i < odlet.Count; i++)
+                {
+                    if (odlet[i] == null) continue;
+                    float tt = tAnim;
+                    odlet[i].position = startP[i] + vel[i] * tt + Vector3.down * (9f * tt * tt);
+                    odlet[i].Rotate(spin[i] * Time.deltaTime);
+                    odlet[i].localScale = Vector3.one * KostkaVisual.CubeScale * Mathf.Lerp(1f, 0.1f, tt / 0.45f);
+                }
+                yield return null;
+            }
+            for (int i = 0; i < odlet.Count; i++)
+                if (odlet[i] != null) Destroy(odlet[i].gameObject);
+
+            var noveDic = new Dictionary<Vector3Int, Transform>();
+            foreach (var kv in lezici)
+            {
+                var from = kv.Key;
+                var to = posun.ContainsKey(from) ? posun[from] : from;
+                noveDic[to] = kv.Value;
+            }
+            lezici.Clear();
+            foreach (var kv in noveDic) lezici[kv.Key] = kv.Value;
+
+            float t2 = 0f;
+            var fromPos = new Dictionary<Transform, Vector3>();
+            var toPos = new Dictionary<Transform, Vector3>();
+            foreach (var kv in lezici)
+            {
+                if (kv.Value == null) continue;
+                fromPos[kv.Value] = kv.Value.position;
+                toPos[kv.Value] = KostkaVisual.World(kv.Key);
+            }
+            while (t2 < 0.20f)
+            {
+                t2 += Time.deltaTime;
+                float k = Mathf.SmoothStep(0f, 1f, t2 / 0.20f);
+                foreach (var kv in toPos)
+                    if (kv.Key != null) kv.Key.position = Vector3.Lerp(fromPos[kv.Key], kv.Value, k);
+                yield return null;
+            }
+            foreach (var kv in lezici)
+                if (kv.Value != null) kv.Value.position = KostkaVisual.World(kv.Key);
+
+            plne = board.NajdiPlneRadky();
+        }
+
         skore += plus;
-        patra += n;
-        int novyLevel = 1 + patra / PatraNaLevel;
+        rady += celkemRad;
+        int novyLevel = 1 + rady / RadNaLevel;
         if (novyLevel > level) level = novyLevel;
         UlozRekord();
         ObnovHud();
-        UkazeCombo(n, plus);
+        UkazeCombo(celkemRad, celkemPater, plus);
         if (SoundFX.I != null) SoundFX.I.Clear();
-
-        var set = new HashSet<int>(plna);
-        var odlet = new List<Transform>();
-        var klice = new List<Vector3Int>(lezici.Keys);
-        for (int i = 0; i < klice.Count; i++)
-        {
-            var p = klice[i];
-            if (!set.Contains(p.y)) continue;
-            if (lezici.TryGetValue(p, out var tr) && tr != null) odlet.Add(tr);
-            lezici.Remove(p);
-        }
-
-        Vector3 stred = Vector3.zero;
-        int cnt = 0;
-        for (int i = 0; i < odlet.Count; i++)
-        { stred += odlet[i].position; cnt++; }
-        if (cnt > 0) stred /= cnt;
-
-        float t = 0f;
-        var start = new Vector3[odlet.Count];
-        var vel = new Vector3[odlet.Count];
-        var spin = new Vector3[odlet.Count];
-        for (int i = 0; i < odlet.Count; i++)
-        {
-            start[i] = odlet[i].position;
-            Vector3 outw = (start[i] - stred); outw.y = 0f;
-            if (outw.sqrMagnitude < 0.01f) outw = Random.insideUnitSphere;
-            outw.y = 0; outw.Normalize();
-            vel[i] = outw * Random.Range(6f, 10f) + Vector3.up * Random.Range(3f, 6f);
-            spin[i] = Random.insideUnitSphere * 360f;
-        }
-        while (t < 0.55f)
-        {
-            t += Time.deltaTime;
-            for (int i = 0; i < odlet.Count; i++)
-            {
-                if (odlet[i] == null) continue;
-                float tt = t;
-                odlet[i].position = start[i] + vel[i] * tt + Vector3.down * (9f * tt * tt);
-                odlet[i].Rotate(spin[i] * Time.deltaTime);
-                odlet[i].localScale = Vector3.one * KostkaVisual.CubeScale * Mathf.Lerp(1f, 0.1f, tt / 0.55f);
-            }
-            yield return null;
-        }
-        for (int i = 0; i < odlet.Count; i++)
-            if (odlet[i] != null) Destroy(odlet[i].gameObject);
-
-        var posun = board.Collapse(plna);
-        var noveDic = new Dictionary<Vector3Int, Transform>();
-        foreach (var kv in lezici)
-        {
-            var from = kv.Key;
-            var to = posun.ContainsKey(from) ? posun[from] : from;
-            noveDic[to] = kv.Value;
-        }
-        lezici.Clear();
-        foreach (var kv in noveDic) lezici[kv.Key] = kv.Value;
-
-        // plynulé spadnutí horních pater
-        float t2 = 0f;
-        var fromPos = new Dictionary<Transform, Vector3>();
-        var toPos = new Dictionary<Transform, Vector3>();
-        foreach (var kv in lezici)
-        {
-            if (kv.Value == null) continue;
-            fromPos[kv.Value] = kv.Value.position;
-            toPos[kv.Value] = KostkaVisual.World(kv.Key);
-        }
-        while (t2 < 0.22f)
-        {
-            t2 += Time.deltaTime;
-            float k = Mathf.SmoothStep(0f, 1f, t2 / 0.22f);
-            foreach (var kv in toPos)
-                if (kv.Key != null) kv.Key.position = Vector3.Lerp(fromPos[kv.Key], kv.Value, k);
-            yield return null;
-        }
-        foreach (var kv in lezici)
-            if (kv.Value != null) kv.Value.position = KostkaVisual.World(kv.Key);
 
         busy = false;
         stav = Stav.Hra;
@@ -439,13 +463,14 @@ public class GameManager : MonoBehaviour
         ObnovHud();
     }
 
-    void UkazeCombo(int n, int plus)
+    void UkazeCombo(int n, int pater, int plus)
     {
         if (txtCombo == null) return;
-        string nazev = n == 1 ? "PATRO!" : n == 2 ? "DVOJITÉ!" : n == 3 ? "TROJITÉ!" : "KOMBO!";
+        string nazev = n == 1 ? "ŘADA!" : n == 2 ? "DVOJITÉ!" : n == 3 ? "TROJITÉ!" : "KOMBO!";
+        if (pater > 0) nazev += "\nCELÉ PATRO!";
         txtCombo.text = nazev + "\n+" + plus;
         txtCombo.gameObject.SetActive(true);
-        StopCoroutine("SkryjCombo");
+        StopCoroutine(nameof(SkryjCombo));
         StartCoroutine(SkryjCombo());
     }
 
@@ -453,6 +478,30 @@ public class GameManager : MonoBehaviour
     {
         yield return new WaitForSeconds(1.1f);
         if (txtCombo != null) txtCombo.gameObject.SetActive(false);
+    }
+
+    public void PrepnoutJumpscare()
+    {
+        jumpscareZapnuto = !jumpscareZapnuto;
+        PlayerPrefs.SetInt(PrefJumpscare, jumpscareZapnuto ? 1 : 0);
+        PlayerPrefs.Save();
+        ObnovTabulku();
+    }
+
+    public IEnumerator ForceJumpscare()
+    {
+        bool was = busy;
+        var prev = stav;
+        busy = true;
+        yield return Jumpscare();
+        busy = was;
+        stav = prev;
+    }
+
+    IEnumerator Jumpscare()
+    {
+        var cam = Camera.main;
+        yield return JumpscarePavouk.Hraj(cam, 1.05f);
     }
 
     void KonecHry()
@@ -482,6 +531,8 @@ public class GameManager : MonoBehaviour
 
     void ObsluzPohyb()
     {
+        if (Input.GetKey(KeyCode.LeftShift) || Input.GetKey(KeyCode.RightShift))
+            return;
         var cam = CameraOrbit.I;
         Vector3Int fwd = cam != null ? cam.ForwardAxis : new Vector3Int(0, 0, -1);
         Vector3Int right = cam != null ? cam.RightAxis : new Vector3Int(1, 0, 0);
@@ -522,13 +573,35 @@ public class GameManager : MonoBehaviour
     void ObsluzRotaci()
     {
         bool ok = false;
+        bool shift = Input.GetKey(KeyCode.LeftShift) || Input.GetKey(KeyCode.RightShift);
+        var cam = CameraOrbit.I;
+        Vector3Int fwd = cam != null ? cam.ForwardAxis : new Vector3Int(0, 0, -1);
+        Vector3Int right = cam != null ? cam.RightAxis : new Vector3Int(1, 0, 0);
+
+        // Hlavní schéma: Q/E svislá osa, Shift+WASD překlopení vůči kameře.
         if (Input.GetKeyDown(KeyCode.Q)) ok = ZkusRotaci(1, -1);
         else if (Input.GetKeyDown(KeyCode.E)) ok = ZkusRotaci(1, 1);
+        else if (shift && (Input.GetKeyDown(KeyCode.W) || Input.GetKeyDown(KeyCode.UpArrow)))
+            ok = FlipKolem(right, -1);
+        else if (shift && (Input.GetKeyDown(KeyCode.S) || Input.GetKeyDown(KeyCode.DownArrow)))
+            ok = FlipKolem(right, 1);
+        else if (shift && (Input.GetKeyDown(KeyCode.A) || Input.GetKeyDown(KeyCode.LeftArrow)))
+            ok = FlipKolem(fwd, -1);
+        else if (shift && (Input.GetKeyDown(KeyCode.D) || Input.GetKeyDown(KeyCode.RightArrow)))
+            ok = FlipKolem(fwd, 1);
+        // Staré klávesy jako alternativa (světové osy).
         else if (Input.GetKeyDown(KeyCode.R)) ok = ZkusRotaci(0, 1);
         else if (Input.GetKeyDown(KeyCode.F)) ok = ZkusRotaci(0, -1);
         else if (Input.GetKeyDown(KeyCode.Z) || Input.GetKeyDown(KeyCode.Y)) ok = ZkusRotaci(2, 1);
         else if (Input.GetKeyDown(KeyCode.X)) ok = ZkusRotaci(2, -1);
         if (ok && SoundFX.I != null) SoundFX.I.Rotate();
+    }
+
+    bool FlipKolem(Vector3Int osaVec, int smer)
+    {
+        int osa = osaVec.x != 0 ? 0 : 2;
+        int zn = (osaVec.x + osaVec.z) >= 0 ? 1 : -1;
+        return ZkusRotaci(osa, zn * smer);
     }
 
     public void PredplnDemo()
@@ -546,6 +619,13 @@ public class GameManager : MonoBehaviour
             board.Set(p, sid + 1);
             var go = KostkaVisual.MakeCube(leziciRoot, KostkaVisual.World(p), KostkaVisual.Lit(PieceShapes.All[sid].barva), "Demo");
             lezici[p] = go.transform;
+        }
+        foreach (var r in board.NajdiPlneRadky())
+        {
+            var dira = r.podelX ? new Vector3Int(3, r.y, r.pevna) : new Vector3Int(r.pevna, r.y, 3);
+            board.Set(dira, 0);
+            if (lezici.TryGetValue(dira, out var tr) && tr != null) Destroy(tr.gameObject);
+            lezici.Remove(dira);
         }
     }
 
@@ -722,10 +802,18 @@ public class GameManager : MonoBehaviour
     {
         if (nahled == null) return;
         var def = PieceShapes.All[dalsiTvar];
-        nahled.Set(Vector3Int.zero, def.bunky, def.barva, false);
-        nahled.root.localRotation = Quaternion.Euler(12f, 25f, 0f);
-        SetLayer(nahled.root.gameObject, LayerMask.NameToLayer("Nahled") >= 0 ? LayerMask.NameToLayer("Nahled") : 8);
+        nahled.SetLocal(def.bunky, def.barva);
+        nahled.root.localPosition = Vector3.zero;
+        nahled.root.localRotation = Quaternion.Euler(18f, 28f, 0f);
+        int layer = LayerMask.NameToLayer("Nahled");
+        if (layer < 0) layer = 8;
+        SetLayer(nahled.root.gameObject, layer);
         if (nahledImg != null) nahledImg.texture = nahledRt;
+        if (nahledCam != null)
+        {
+            nahledCam.enabled = true;
+            nahledCam.Render();
+        }
     }
 
     // ---------- UI ----------
@@ -757,14 +845,13 @@ public class GameManager : MonoBehaviour
 
         var btnHrat = Tlacitko("Hrat", karta, new Vector2(0, 10), new Vector2(280, 80), "HRÁT", coral, Color.white, 44, () => StartGame(false));
 
-        Txt("Ovl", karta, new Vector2(0, -200), new Vector2(700, 300),
-            "Pohyb             WASD / šipky\n" +
-            "Rychlý pád        Mezerník\n" +
-            "Pomalý pád        Shift\n" +
-            "Otáčení           Q E,  R F,  Z X\n" +
-            "Kamera            pravé tlačítko,  1 / 2\n" +
-            "Pauza             P",
-            26, fontUi, new Color(0.42f, 0.30f, 0.26f), FontStyles.Normal, TextAlignmentOptions.Center);
+        Txt("Ovl", karta, new Vector2(0, -210), new Vector2(700, 320),
+            "Pohyb        WASD   ·   Otočení   Q / E\n" +
+            "Překlopit    Shift + WASD\n" +
+            "Pád          Mezerník   ·   Kamera  1 / 2  nebo myš\n" +
+            "Pauza        P   ·   Jumpscare  J  (zap/vyp)\n" +
+            "Cíl: skládej řady 7 kostek vedle sebe.",
+            24, fontUi, new Color(0.42f, 0.30f, 0.26f), FontStyles.Normal, TextAlignmentOptions.Center);
 
         // HUD
         hud = Panel("HUD", canvGo.transform, Vector2.zero, new Vector2(1920, 1080), Color.clear, null);
@@ -776,7 +863,15 @@ public class GameManager : MonoBehaviour
         txtSkore = Txt("Skore", hudLevy, new Vector2(0, 70), new Vector2(320, 60), "Skóre  0", 34, fontUi, ink, FontStyles.Bold, TextAlignmentOptions.Left);
         txtRekord = Txt("RekordH", hudLevy, new Vector2(0, 20), new Vector2(320, 40), "Rekord  0", 24, fontUi, new Color(0.5f, 0.35f, 0.28f), FontStyles.Normal, TextAlignmentOptions.Left);
         txtLevel = Txt("Level", hudLevy, new Vector2(0, -25), new Vector2(320, 40), "Level  1", 28, fontUi, ink, FontStyles.Normal, TextAlignmentOptions.Left);
-        txtPatra = Txt("Patra", hudLevy, new Vector2(0, -70), new Vector2(320, 40), "Patra  0", 28, fontUi, ink, FontStyles.Normal, TextAlignmentOptions.Left);
+        txtRady = Txt("Rady", hudLevy, new Vector2(0, -70), new Vector2(320, 40), "Řady  0", 28, fontUi, ink, FontStyles.Normal, TextAlignmentOptions.Left);
+
+        var tab = Panel("Tabulka", hud, Vector2.zero, new Vector2(400, 340), blush, dimSprite);
+        SetAnchor(tab, new Vector2(0, 0), new Vector2(0, 0), new Vector2(0, 0));
+        tab.anchoredPosition = new Vector2(24, 24);
+        Txt("TabNadpis", tab, new Vector2(0, 142), new Vector2(360, 36), "OVLÁDÁNÍ", 22, fontUi, ink, FontStyles.Bold, TextAlignmentOptions.Center);
+        txtTabulka = Txt("TabText", tab, new Vector2(0, 8), new Vector2(360, 240), TabulkaText(), 19, fontUi, new Color(0.38f, 0.26f, 0.22f), FontStyles.Normal, TextAlignmentOptions.Left);
+        txtJsStav = Txt("TabJs", tab, new Vector2(0, -142), new Vector2(360, 28), "", 18, fontUi, new Color(0.50f, 0.32f, 0.26f), FontStyles.Normal, TextAlignmentOptions.Center);
+        ObnovTabulku();
 
         var hudPravy = Panel("Pravy", hud, Vector2.zero, new Vector2(240, 300), blush, dimSprite);
         SetAnchor(hudPravy, new Vector2(1, 1), new Vector2(1, 1), new Vector2(1, 1));
@@ -811,7 +906,34 @@ public class GameManager : MonoBehaviour
         txtKonecSkore = Txt("KonecS", konecKarta, new Vector2(0, 30), new Vector2(580, 80), "Skóre: 0", 32, fontUi, ink, FontStyles.Normal, TextAlignmentOptions.Center);
         Tlacitko("Znovu", konecKarta, new Vector2(0, -110), new Vector2(280, 70), "ZNOVU", coral, Color.white, 32, () => StartGame(false));
 
+        var stinGo = new GameObject("JumpscareStin");
+        stinGo.transform.SetParent(canvGo.transform, false);
+        jumpscareStin = stinGo.AddComponent<Image>();
+        jumpscareStin.color = new Color(0.15f, 0.02f, 0.02f, 0.40f);
+        Stretch(stinGo.GetComponent<RectTransform>());
+        stinGo.SetActive(false);
+
         _ = btnHrat;
+    }
+
+    string TabulkaText()
+    {
+        return
+            "WASD          pohyb\n" +
+            "Q / E         otočit (svisle)\n" +
+            "Shift + W/S   překlopit vpřed/vzad\n" +
+            "Shift + A/D   překlopit do strany\n" +
+            "Mezerník      pád\n" +
+            "Ctrl          pomalý pád\n" +
+            "1 / 2  nebo pravé tlačítko   kamera\n" +
+            "P             pauza";
+    }
+
+    void ObnovTabulku()
+    {
+        if (txtJsStav != null)
+            txtJsStav.text = jumpscareZapnuto ? "J  jumpscare zapnutý" : "J  jumpscare vypnutý";
+        if (txtTabulka != null) txtTabulka.text = TabulkaText();
     }
 
     void ObnovHud()
@@ -819,7 +941,7 @@ public class GameManager : MonoBehaviour
         if (txtSkore != null) txtSkore.text = "Skóre  " + skore;
         if (txtRekord != null) txtRekord.text = "Rekord  " + rekord;
         if (txtLevel != null) txtLevel.text = "Level  " + level;
-        if (txtPatra != null) txtPatra.text = "Patra  " + patra;
+        if (txtRady != null) txtRady.text = "Řady  " + rady;
         if (txtTitulRekord != null) txtTitulRekord.text = "Rekord: " + rekord;
     }
 

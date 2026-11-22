@@ -3,23 +3,23 @@ using System.IO;
 using UnityEngine;
 
 // Demo režim pro screenshoty a automatické hraní:
-//   -autoplay       hraje samo (náhodné tahy)
-//   -screenshots    uloží 3 obrázky (titulka + hra) a skončí
-//   -shotdir <cesta>  kam uložit obrázky
-//   -demo           start s předvyplněnou šachtou (i bez screenshotů)
+//   -autoplay       hraje samo
+//   -screenshots    uloží hru s tabulkou ovládání a jumpscare, pak skončí
+//   -shotdir <cesta>
+//   -demo           start s předvyplněnou šachtou
+//   -jumpscare      s -screenshots vynutí pavouka (dělá se i samo)
 public class AutoDemo : MonoBehaviour
 {
     bool ridit;
 
     void Start()
     {
-        if (CmdArgs.Has("-autoplay") || CmdArgs.Has("-screenshots") || CmdArgs.Has("-demo"))
+        if (CmdArgs.Has("-autoplay") || CmdArgs.Has("-screenshots") || CmdArgs.Has("-demo") || CmdArgs.Has("-jumpscare"))
             StartCoroutine(Run());
     }
 
     IEnumerator Run()
     {
-        // počkáme, až GameManager dostaví UI a dekoraci
         yield return null;
         yield return null;
 
@@ -31,6 +31,8 @@ public class AutoDemo : MonoBehaviour
 
         if (GameManager.I != null)
             GameManager.I.StartGame(CmdArgs.Has("-demo"));
+        if (CmdArgs.Has("-jumpscare") && GameManager.I != null)
+            yield return GameManager.I.ForceJumpscare();
         if (CmdArgs.Has("-autoplay"))
             StartCoroutine(Ai());
     }
@@ -40,10 +42,6 @@ public class AutoDemo : MonoBehaviour
         string dir = CmdArgs.Value("-shotdir", Path.Combine(Application.dataPath, "..", "Screenshots"));
         try { Directory.CreateDirectory(dir); }
         catch { /* ignore */ }
-
-        if (CameraOrbit.I != null) CameraOrbit.I.autoOrbit = true;
-        yield return new WaitForSeconds(1.0f);
-        yield return Shot(dir, "01_titulka.png");
 
         try
         {
@@ -60,17 +58,19 @@ public class AutoDemo : MonoBehaviour
             CameraOrbit.I.targetYaw = 38f;
             CameraOrbit.I.pitch = 42f;
         }
-        yield return new WaitForSeconds(1.1f);
-        yield return Shot(dir, "02_hra.png");
+        yield return new WaitForSeconds(1.2f);
+        yield return Shot(dir, "01_hra.png");
 
-        if (CameraOrbit.I != null) CameraOrbit.I.BumpYaw(90f);
-        yield return new WaitForSeconds(0.9f);
-        yield return Shot(dir, "03_hra_uhel.png");
+        if (GameManager.I != null)
+            GameManager.I.StartCoroutine(GameManager.I.ForceJumpscare());
+        yield return new WaitForSeconds(0.38f);
+        yield return Shot(dir, "02_pavouk.png");
+        yield return new WaitForSeconds(0.85f);
 
         try { File.WriteAllText(Path.Combine(dir, "shots_done.txt"), "ok"); }
         catch { /* ignore */ }
 
-        yield return new WaitForSeconds(0.4f);
+        yield return new WaitForSeconds(0.3f);
         Application.Quit();
 #if UNITY_EDITOR
         UnityEditor.EditorApplication.isPlaying = false;
@@ -83,7 +83,6 @@ public class AutoDemo : MonoBehaviour
         yield return new WaitForEndOfFrame();
         ScreenCapture.CaptureScreenshot(path);
         Debug.Log("[Kostka] Screenshot: " + path);
-        // CaptureScreenshot zapisuje až na konci snímku
         yield return new WaitForSeconds(0.45f);
     }
 
@@ -96,17 +95,6 @@ public class AutoDemo : MonoBehaviour
             {
                 yield return new WaitForSeconds(0.2f);
                 continue;
-            }
-            int r = Random.Range(0, 8);
-            // jednoduché náhodné tahy, občas pád
-            if (r < 4)
-            {
-                // posun simulujeme klávesami nejde; AI nechá gravitaci
-            }
-            if (r == 5) { /* nothing, gravitation */ }
-            if (Random.value < 0.12f)
-            {
-                // hard drop přes veřejné rozhraní nemáme – pošleme mezerník nejde z kódu snadno bez inputu
             }
             yield return new WaitForSeconds(0.35f);
         }
