@@ -20,14 +20,11 @@ Tabulka je ve hře pořád vidět v levém dolním rohu.
 | Pomalý pád | **Ctrl** |
 | Kamera | pravé tlačítko myši, **1 / 2** pootočí o 90° |
 | Pauza | **P** |
-| Jumpscare zap / vyp | **J** (nastavení se pamatuje) |
 | Start / znovu | **Enter** nebo **Mezerník** (na titulce a po konci hry) |
 
 Starší klávesy **R / F** a **Z / X** (na české klávesnici i **Y**) pořád otáčejí kolem světových os.
 
 Cíl: skládej kousky a zaplňuj řady o 7 kostkách. Za víc řad najednou je kombo, za celé patro bonus. Rychlost roste s levelem (každých 8 řad). Rekord se ukládá v prohlížeči / v počítači.
-
-Když smažeš řadu, na chvíli vyskočí pavouk (jde vypnout klávesou **J**).
 
 Pomůcky: průhledný stín kusu na místě dopadu, mřížka na stěnách šachty, náhled dalšího kusu, tabulka ovládání.
 
@@ -54,3 +51,19 @@ Hotový WebGL se nahraje na GitHub Pages skriptem `Tools/publish_webgl.sh`. Kdy�
 - Grafika je záměrně jiná než u hada: světlé pastelové kostky, krémové pozadí, měkké stíny.
 - Ve hře je 8 tvarů (tyčka, čtverec, elko, téčko, es, roh, šroub, kříž).
 - Testovací parametry přehrávače: `-autoplay`, `-screenshots`, `-shotdir <složka>`, `-demo`, `-jumpscare`.
+
+## Pro učitele / vývojáře
+
+Skryté klávesy (nejsou v tabulce ovládání ve hře):
+
+- **J** — zapne / vypne jumpscare po smazání řady (výchozí: zapnuto, volba se pamatuje).
+- **K** — přepne styl jumpscaru mezi klasickým (fotka) a procedurálním 3D pavoukem a hned přehraje ukázku. Výchozí styl je klasický fotojumpscare.
+
+### Zdroj fotografie pavouka
+
+Soubor `Assets/Resources/PavoukKlasik.jpg` vychází z fotografie:
+
+- **Soubor:** [Phidippus_regius_female_01.jpg](https://commons.wikimedia.org/wiki/File:Phidippus_regius_female_01.jpg) (Wikimedia Commons)
+- **Autor:** [Nosferattus](https://commons.wikimedia.org/wiki/User:Nosferattus)
+- **Licence:** [CC0 1.0 Universal](https://creativecommons.org/publicdomain/zero/1.0/) (Public Domain Dedication) — lze upravovat i použít komerčně bez uvedení autora
+- Úprava ve hře: ořez a ztmavení pozadí.

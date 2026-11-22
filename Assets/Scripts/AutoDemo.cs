@@ -4,10 +4,10 @@ using UnityEngine;
 
 // Demo režim pro screenshoty a automatické hraní:
 //   -autoplay       hraje samo
-//   -screenshots    uloží hru s tabulkou ovládání a jumpscare, pak skončí
+//   -screenshots    uloží hru a klasický jumpscare, pak skončí
 //   -shotdir <cesta>
 //   -demo           start s předvyplněnou šachtou
-//   -jumpscare      s -screenshots vynutí pavouka (dělá se i samo)
+//   -jumpscare      vynutí jumpscare aktuálního stylu
 public class AutoDemo : MonoBehaviour
 {
     bool ridit;
@@ -61,11 +61,15 @@ public class AutoDemo : MonoBehaviour
         yield return new WaitForSeconds(1.2f);
         yield return Shot(dir, "01_hra.png");
 
+        // Klasický foto-jumpscare (výchozí styl) – snímek v momentu přiblížení
         if (GameManager.I != null)
+        {
+            GameManager.I.jumpscareStyl = GameManager.StylKlasik;
             GameManager.I.StartCoroutine(GameManager.I.ForceJumpscare());
-        yield return new WaitForSeconds(0.38f);
-        yield return Shot(dir, "02_pavouk.png");
-        yield return new WaitForSeconds(0.85f);
+        }
+        yield return new WaitForSeconds(0.28f);
+        yield return Shot(dir, "03_pavouk_klasik.png");
+        yield return new WaitForSeconds(0.9f);
 
         try { File.WriteAllText(Path.Combine(dir, "shots_done.txt"), "ok"); }
         catch { /* ignore */ }

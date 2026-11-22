@@ -26,10 +26,15 @@ public class GameManager : MonoBehaviour
 
     const string PrefRekord = "Kostka.HighScore";
     const string PrefJumpscare = "Kostka.Jumpscare";
+    const string PrefJumpscareStyl = "Kostka.JumpscareStyl";
+    public const int StylKlasik = 1;
+    public const int Styl3D = 0;
     const int RadNaLevel = 8;
 
     int skore, rekord, level = 1, rady;
     public bool jumpscareZapnuto = true;
+    public int jumpscareStyl = StylKlasik;
+    Texture2D pavoukFoto;
     int tvar, dalsiTvar;
     Vector3Int puvod;
     Vector3Int[] lokal;
@@ -50,7 +55,7 @@ public class GameManager : MonoBehaviour
 
     Canvas canvas;
     RectTransform titulka, hud, pauzaPanel, konecPanel;
-    TextMeshProUGUI txtSkore, txtRekord, txtLevel, txtRady, txtKonecSkore, txtTitulRekord, txtCombo, txtTabulka, txtJsStav;
+    TextMeshProUGUI txtSkore, txtRekord, txtLevel, txtRady, txtKonecSkore, txtTitulRekord, txtCombo, txtTabulka, txtNapis;
     Image jumpscareStin;
     RawImage nahledImg;
 
@@ -63,6 +68,8 @@ public class GameManager : MonoBehaviour
         QualitySettings.SetQualityLevel(Mathf.Max(0, QualitySettings.names.Length - 1), true);
         rekord = PlayerPrefs.GetInt(PrefRekord, 0);
         jumpscareZapnuto = PlayerPrefs.GetInt(PrefJumpscare, 1) != 0;
+        jumpscareStyl = PlayerPrefs.GetInt(PrefJumpscareStyl, StylKlasik);
+        pavoukFoto = Resources.Load<Texture2D>("PavoukKlasik");
         KostkaVisual.SetTemplates(litTemplate, unlitTemplate);
         KostkaVisual.Init();
         ZajistiPisma();
@@ -99,6 +106,8 @@ public class GameManager : MonoBehaviour
     {
         if (Input.GetKeyDown(KeyCode.J))
             PrepnoutJumpscare();
+        if (Input.GetKeyDown(KeyCode.K))
+            PrepnoutStyl();
 
         if (Input.GetKeyDown(KeyCode.P) && (stav == Stav.Hra || stav == Stav.Pauza))
             PrepnoutPauzu();
@@ -485,7 +494,34 @@ public class GameManager : MonoBehaviour
         jumpscareZapnuto = !jumpscareZapnuto;
         PlayerPrefs.SetInt(PrefJumpscare, jumpscareZapnuto ? 1 : 0);
         PlayerPrefs.Save();
-        ObnovTabulku();
+    }
+
+    public void PrepnoutStyl()
+    {
+        jumpscareStyl = (jumpscareStyl == StylKlasik) ? Styl3D : StylKlasik;
+        PlayerPrefs.SetInt(PrefJumpscareStyl, jumpscareStyl);
+        PlayerPrefs.Save();
+        if (!busy) StartCoroutine(UkázatStylANahled());
+    }
+
+    IEnumerator UkázatStylANahled()
+    {
+        busy = true;
+        string txt = jumpscareStyl == StylKlasik ? "Pavouk: klasik" : "Pavouk: 3D";
+        yield return UkázatNapis(txt, 0.45f);
+        yield return Jumpscare();
+        busy = false;
+    }
+
+    IEnumerator UkázatNapis(string text, float cas)
+    {
+        if (txtNapis != null)
+        {
+            txtNapis.text = text;
+            txtNapis.gameObject.SetActive(true);
+        }
+        yield return new WaitForSecondsRealtime(cas);
+        if (txtNapis != null) txtNapis.gameObject.SetActive(false);
     }
 
     public IEnumerator ForceJumpscare()
@@ -500,8 +536,10 @@ public class GameManager : MonoBehaviour
 
     IEnumerator Jumpscare()
     {
-        var cam = Camera.main;
-        yield return JumpscarePavouk.Hraj(cam, 1.05f);
+        if (jumpscareStyl == StylKlasik && pavoukFoto != null && canvas != null)
+            yield return JumpscarePavouk.HrajKlasik(canvas, pavoukFoto, 1.05f);
+        else
+            yield return JumpscarePavouk.Hraj(Camera.main, 1.05f);
     }
 
     void KonecHry()
@@ -849,7 +887,7 @@ public class GameManager : MonoBehaviour
             "Pohyb        WASD   ·   Otočení   Q / E\n" +
             "Překlopit    Shift + WASD\n" +
             "Pád          Mezerník   ·   Kamera  1 / 2  nebo myš\n" +
-            "Pauza        P   ·   Jumpscare  J  (zap/vyp)\n" +
+            "Pauza        P\n" +
             "Cíl: skládej řady 7 kostek vedle sebe.",
             24, fontUi, new Color(0.42f, 0.30f, 0.26f), FontStyles.Normal, TextAlignmentOptions.Center);
 
@@ -865,12 +903,11 @@ public class GameManager : MonoBehaviour
         txtLevel = Txt("Level", hudLevy, new Vector2(0, -25), new Vector2(320, 40), "Level  1", 28, fontUi, ink, FontStyles.Normal, TextAlignmentOptions.Left);
         txtRady = Txt("Rady", hudLevy, new Vector2(0, -70), new Vector2(320, 40), "Řady  0", 28, fontUi, ink, FontStyles.Normal, TextAlignmentOptions.Left);
 
-        var tab = Panel("Tabulka", hud, Vector2.zero, new Vector2(400, 340), blush, dimSprite);
+        var tab = Panel("Tabulka", hud, Vector2.zero, new Vector2(440, 360), blush, dimSprite);
         SetAnchor(tab, new Vector2(0, 0), new Vector2(0, 0), new Vector2(0, 0));
         tab.anchoredPosition = new Vector2(24, 24);
-        Txt("TabNadpis", tab, new Vector2(0, 142), new Vector2(360, 36), "OVLÁDÁNÍ", 22, fontUi, ink, FontStyles.Bold, TextAlignmentOptions.Center);
-        txtTabulka = Txt("TabText", tab, new Vector2(0, 8), new Vector2(360, 240), TabulkaText(), 19, fontUi, new Color(0.38f, 0.26f, 0.22f), FontStyles.Normal, TextAlignmentOptions.Left);
-        txtJsStav = Txt("TabJs", tab, new Vector2(0, -142), new Vector2(360, 28), "", 18, fontUi, new Color(0.50f, 0.32f, 0.26f), FontStyles.Normal, TextAlignmentOptions.Center);
+        Txt("TabNadpis", tab, new Vector2(0, 150), new Vector2(400, 36), "OVLÁDÁNÍ", 22, fontUi, ink, FontStyles.Bold, TextAlignmentOptions.Center);
+        txtTabulka = Txt("TabText", tab, new Vector2(0, -8), new Vector2(400, 280), TabulkaText(), 19, fontUi, new Color(0.38f, 0.26f, 0.22f), FontStyles.Normal, TextAlignmentOptions.Left);
         ObnovTabulku();
 
         var hudPravy = Panel("Pravy", hud, Vector2.zero, new Vector2(240, 300), blush, dimSprite);
@@ -888,6 +925,9 @@ public class GameManager : MonoBehaviour
 
         txtCombo = Txt("Combo", hud, Vector2.zero, new Vector2(700, 200), "", 72, fontTitle, coral, FontStyles.Bold, TextAlignmentOptions.Center);
         txtCombo.gameObject.SetActive(false);
+
+        txtNapis = Txt("Napis", canvGo.transform, new Vector2(0, 280), new Vector2(900, 80), "", 48, fontTitle, ink, FontStyles.Bold, TextAlignmentOptions.Center);
+        txtNapis.gameObject.SetActive(false);
 
         // PAUZA
         pauzaPanel = Panel("Pauza", canvGo.transform, Vector2.zero, new Vector2(1920, 1080), new Color(0.95f, 0.88f, 0.80f, 0.45f), null);
@@ -925,14 +965,13 @@ public class GameManager : MonoBehaviour
             "Shift + A/D   překlopit do strany\n" +
             "Mezerník      pád\n" +
             "Ctrl          pomalý pád\n" +
-            "1 / 2  nebo pravé tlačítko   kamera\n" +
+            "1 / 2         kamera o 90°\n" +
+            "Myš (pravé)   otáčení kamery\n" +
             "P             pauza";
     }
 
     void ObnovTabulku()
     {
-        if (txtJsStav != null)
-            txtJsStav.text = jumpscareZapnuto ? "J  jumpscare zapnutý" : "J  jumpscare vypnutý";
         if (txtTabulka != null) txtTabulka.text = TabulkaText();
     }
 

@@ -2,6 +2,7 @@ using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.Rendering;
+using UnityEngine.UI;
 
 // Procedurální pavouk pro krátký jumpscare (tělo, zadeček, 8 nohou, červené oči).
 public class JumpscarePavouk : MonoBehaviour
@@ -22,6 +23,7 @@ public class JumpscarePavouk : MonoBehaviour
         var telo = KostkaVisual.Lit(new Color(0.07f, 0.04f, 0.03f));
         var oko = KostkaVisual.Unlit(new Color(1f, 0.08f, 0.05f));
         var zornice = KostkaVisual.Unlit(new Color(0.02f, 0.01f, 0.01f));
+        var nohaMat = KostkaVisual.Lit(new Color(0.16f, 0.08f, 0.05f));
 
         // Zadeček
         Koule(root, "Zadecel", new Vector3(0f, 0.08f, 0.42f), new Vector3(0.85f, 0.70f, 1.05f), telo);
@@ -41,7 +43,7 @@ public class JumpscarePavouk : MonoBehaviour
 
         for (int side = -1; side <= 1; side += 2)
         for (int i = 0; i < 4; i++)
-            script.Noha(root, telo, side, i);
+            script.Noha(root, nohaMat, side, i);
 
         return rootGo;
     }
@@ -104,25 +106,26 @@ public class JumpscarePavouk : MonoBehaviour
 
     void Noha(Transform root, Material mat, int strana, int i)
     {
-        float z = Mathf.Lerp(0.22f, -0.45f, i / 3f);
+        // Přední nohy (i=0,1) míří kameře naproti, zadní do stran.
+        float z = Mathf.Lerp(-0.55f, 0.20f, i / 3f);
         var kyc = new GameObject("Kyc" + strana + i).transform;
         kyc.SetParent(root, false);
-        kyc.localPosition = new Vector3(strana * 0.22f, 0.02f, z);
-        float yaw = strana * (40f + i * 14f);
-        float roll = strana * (28f + i * 4f);
-        float pitch = -8f + i * 6f;
+        kyc.localPosition = new Vector3(strana * 0.34f, -0.04f, z);
+        float yaw = strana * (18f + i * 30f);
+        float roll = strana * (58f + i * 5f);
+        float pitch = i <= 1 ? -40f + i * 10f : 8f + (i - 2) * 8f;
         kyc.localRotation = Quaternion.Euler(pitch, yaw, roll);
         kyce.Add(kyc);
         kyceRest.Add(kyc.localRotation);
 
-        // stehno
-        var stehno = Valec(kyc, "Stehno", new Vector3(0f, 0.28f, 0f), new Vector3(0.07f, 0.28f, 0.07f), mat);
-        // koleno + holeň dolů a ven
+        var stehno = Valec(kyc, "Stehno", new Vector3(0f, 0.38f, 0f), new Vector3(0.11f, 0.38f, 0.11f), mat);
         var koleno = new GameObject("Koleno").transform;
         koleno.SetParent(stehno, false);
         koleno.localPosition = new Vector3(0f, 0.95f, 0f);
-        koleno.localRotation = Quaternion.Euler(0f, 0f, strana * -55f);
-        Valec(koleno, "Holen", new Vector3(0f, 0.32f, 0f), new Vector3(0.055f, 0.32f, 0.055f), mat);
+        koleno.localRotation = Quaternion.Euler(i <= 1 ? 25f : 0f, 0f, strana * -62f);
+        Valec(koleno, "Holen", new Vector3(0f, 0.42f, 0f), new Vector3(0.09f, 0.42f, 0.09f), mat);
+        // malé chodidlo, ať je konec nohy čitelný
+        Koule(koleno, "Chodidlo", new Vector3(0f, 0.88f, 0f), Vector3.one * 0.16f, mat);
     }
 
     public void Vlnit(float t)
@@ -166,4 +169,92 @@ public class JumpscarePavouk : MonoBehaviour
         Object.Destroy(go.GetComponent<Collider>());
         return go.transform;
     }
+
+    // Klasický jumpscare: fotka přes celou obrazovku, zoom, flash, třes.
+    public static IEnumerator HrajKlasik(Canvas canvas, Texture2D foto, float trvani = 1.05f)
+    {
+        if (canvas == null || foto == null) yield break;
+        if (SoundFX.I != null) SoundFX.I.Scream();
+        if (CameraOrbit.I != null) CameraOrbit.I.shake = 0.55f;
+
+        var root = new GameObject("PavoukKlasikUI");
+        root.transform.SetParent(canvas.transform, false);
+        root.transform.SetAsLastSibling();
+        var rootRt = root.AddComponent<RectTransform>();
+        rootRt.anchorMin = Vector2.zero;
+        rootRt.anchorMax = Vector2.one;
+        rootRt.offsetMin = Vector2.zero;
+        rootRt.offsetMax = Vector2.zero;
+
+        var flashGo = new GameObject("Flash");
+        flashGo.transform.SetParent(root.transform, false);
+        var flash = flashGo.AddComponent<Image>();
+        flash.color = new Color(0.7f, 0.02f, 0.02f, 0.95f);
+        var frt = flash.rectTransform;
+        frt.anchorMin = Vector2.zero;
+        frt.anchorMax = Vector2.one;
+        frt.offsetMin = Vector2.zero;
+        frt.offsetMax = Vector2.zero;
+
+        var fotoGo = new GameObject("Foto");
+        fotoGo.transform.SetParent(root.transform, false);
+        var raw = fotoGo.AddComponent<RawImage>();
+        raw.texture = foto;
+        raw.color = Color.white;
+        var prt = raw.rectTransform;
+        prt.anchorMin = new Vector2(0.5f, 0.5f);
+        prt.anchorMax = new Vector2(0.5f, 0.5f);
+        // Pivot výš, ať zoom míří na oči, ne na čelisti.
+        prt.pivot = new Vector2(0.5f, 0.62f);
+        var canvRt = canvas.GetComponent<RectTransform>();
+        float h = (canvRt != null && canvRt.rect.height > 1f) ? canvRt.rect.height : 1080f;
+        float aspect = (float)foto.width / Mathf.Max(1, foto.height);
+        prt.sizeDelta = new Vector2(h * aspect, h);
+        prt.localScale = Vector3.one;
+
+        float t = 0f;
+        while (t < trvani)
+        {
+            t += Time.unscaledDeltaTime;
+            float k = Mathf.Clamp01(t / trvani);
+            if (k < 0.08f)
+            {
+                float u = k / 0.08f;
+                flash.color = Color.Lerp(new Color(0.75f, 0.02f, 0.02f, 0.95f), new Color(0f, 0f, 0f, 0.55f), u);
+            }
+            else if (k < 0.7f)
+            {
+                flash.color = new Color(0f, 0f, 0f, Mathf.Lerp(0.55f, 0.15f, (k - 0.08f) / 0.62f));
+            }
+            else
+            {
+                float u = (k - 0.7f) / 0.3f;
+                flash.color = new Color(0f, 0f, 0f, Mathf.Lerp(0.15f, 0f, u));
+                var c = raw.color;
+                c.a = 1f - u;
+                raw.color = c;
+            }
+
+            float scale;
+            if (k < 0.22f)
+            {
+                float e = 1f - Mathf.Pow(1f - k / 0.22f, 3f);
+                scale = Mathf.Lerp(1.02f, 1.48f, e);
+            }
+            else if (k < 0.7f)
+            {
+                scale = 1.48f + Mathf.Sin(t * 28f) * 0.04f;
+                if (CameraOrbit.I != null) CameraOrbit.I.shake = 0.35f;
+            }
+            else
+            {
+                scale = Mathf.Lerp(1.48f, 1.72f, (k - 0.7f) / 0.3f);
+            }
+            prt.localScale = Vector3.one * scale;
+            prt.anchoredPosition = new Vector2(Mathf.Sin(t * 40f) * 18f, Mathf.Cos(t * 32f) * 12f);
+            yield return null;
+        }
+        Object.Destroy(root);
+    }
+
 }
