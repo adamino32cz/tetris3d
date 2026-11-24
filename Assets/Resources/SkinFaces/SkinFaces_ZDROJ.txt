@@ -1,10 +1,14 @@
 Portréty na stěnách kostek (skiny MIKU a ASTOLFO) a pro jumpscare v panelu DEV:
 
-- MikuFace.png — původní stylizovaný portrét pro školní hru KOSTKA, inspirovaný
-  postavou Hatsune Miku. 3D model ve skinech MIKU EXTRA je Tda式初音ミクV4X
+- MikuFace.png, MikuJump.png — original AI-generated illustration created
+  for this project (původní AI ilustrace vytvořená pro tuto školní hru):
+  mint-teal boční cop, hvězdička ve vlasech, bílá mikina se sluchátky.
+  Face je ořez na obličej pro stěny kostek, Jump je celý bust pro jumpscare.
+  3D model ve skinech MIKU EXTRA je Tda式初音ミクV4X
   (viz Assets/Resources/TdaMiku/TdaMiku_ZDROJ.txt, licence Crypton Piapro
   Character License + Tda / Jjinomu). Materiály se za běhu převádějí na URP Unlit
   s texturami z Resources/TdaMiku/Textures, aby ve WebGL nebyly šedé/bílé.
+  Figurka se otáčí s kusem (Q/E, Shift+WASD) a po dopadu si orientaci nechá.
 
 - AstolfoFace.png, AstolfoJump.png — original AI-generated illustration created
   for this project (původní AI ilustrace vytvořená pro tuto školní hru):

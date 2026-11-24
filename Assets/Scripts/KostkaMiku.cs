@@ -15,6 +15,7 @@ public class KostkaMiku : MonoBehaviour
     bool ghost;
     string poseId;
     bool ready;
+    Quaternion pieceOrient = Quaternion.identity;
 
     public static KostkaMiku Attach(Transform parent)
     {
@@ -32,8 +33,9 @@ public class KostkaMiku : MonoBehaviour
         gameObject.SetActive(false);
     }
 
-    public void ShowPose(string shapeId, IList<Vector3> cellCenters, bool asGhost, bool localSpace)
+    public void ShowPose(string shapeId, IList<Vector3> cellCenters, bool asGhost, bool localSpace, Quaternion orient)
     {
+        pieceOrient = orient;
         if (!ready)
         {
             gameObject.SetActive(false);
@@ -296,48 +298,42 @@ public class KostkaMiku : MonoBehaviour
         Vector3 modelSize = any ? mb.size : new Vector3(1f, 1.6f, 1f);
         if (modelSize.x < 0.01f) modelSize = new Vector3(1f, 1.6f, 1f);
 
-        Quaternion rot = Quaternion.identity;
+        // Základní póza: I je v kanonickém tvaru vodorovná podél X (Miku se položí).
+        // kusOrient z rotací kusu (Q/E, Shift+WASD) se násobí na tuto bázi, ať figurka
+        // sleduje každou otočku, nejen změnu AABB.
+        Quaternion baseRot = poseId == "I" ? Quaternion.Euler(0f, 0f, -90f) : Quaternion.identity;
+        Quaternion rot = localSpace ? Quaternion.identity : (pieceOrient * baseRot);
         float targetX = size.x, targetY = size.y, targetZ = size.z;
-        // I: když je vodorovná, polož Miku podél nejdelší osy
         if (poseId == "I")
         {
             if (size.y >= size.x && size.y >= size.z)
             {
-                rot = Quaternion.identity; // stojí v šachtě
                 targetY = size.y;
                 targetX = Mathf.Max(0.9f, size.x);
             }
             else if (size.x >= size.z)
             {
-                rot = Quaternion.Euler(0f, 0f, -90f); // leží podél X
                 targetX = size.x;
                 targetY = 1.1f;
             }
             else
             {
-                rot = Quaternion.Euler(90f, 0f, 0f); // leží podél Z
                 targetZ = size.z;
                 targetY = 1.1f;
             }
         }
         else if (poseId == "O")
         {
-            rot = Quaternion.identity;
-            // klubíčko vyplní 2×2, výška může přečnívat
             targetX = size.x; targetZ = size.z; targetY = Mathf.Max(size.y, 1.2f);
         }
         else
         {
-            rot = Quaternion.identity;
-            if (size.z > size.x + 0.4f)
-                rot = Quaternion.Euler(0f, 90f, 0f);
             targetX = Mathf.Max(size.x, size.z);
             targetZ = Mathf.Min(size.x, size.z);
             targetY = Mathf.Max(size.y, 2.2f);
         }
         if (localSpace)
         {
-            rot = Quaternion.identity;
             targetX = 1.6f; targetY = 1.8f; targetZ = 1.2f;
         }
 

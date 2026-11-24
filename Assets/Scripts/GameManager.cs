@@ -44,6 +44,7 @@ public class GameManager : MonoBehaviour
     Vector3Int puvod;
     Vector3Int[] lokal;
     Vector3 vizPuvod;
+    Quaternion kusOrient = Quaternion.identity;
     float padani;
     float das;
     Vector3Int dasDir;
@@ -206,7 +207,7 @@ public class GameManager : MonoBehaviour
     void NakresliAktivniPlynule()
     {
         if (aktivni == null || lokal == null) return;
-        aktivni.SetSmooth(vizPuvod, lokal, BarvaAktivni, false, tvar);
+        aktivni.SetSmooth(vizPuvod, lokal, BarvaAktivni, false, tvar, kusOrient);
         AktualizujDucha();
     }
 
@@ -278,6 +279,7 @@ public class GameManager : MonoBehaviour
         tvar = dalsiTvar;
         dalsiTvar = TahniTvar();
         lokal = PieceShapes.Copy(PieceShapes.All[tvar].bunky);
+        kusOrient = Quaternion.identity;
         int maxY = 0;
         for (int i = 0; i < lokal.Length; i++) if (lokal[i].y > maxY) maxY = lokal[i].y;
         puvod = new Vector3Int(Board.W / 2, Board.H - 1 - maxY, Board.D / 2);
@@ -290,7 +292,7 @@ public class GameManager : MonoBehaviour
         }
         if (aktivni == null) aktivni = new PieceView("Aktivni", svet, false);
         if (duch == null) duch = new PieceView("Duch", svet, true);
-        aktivni.Set(puvod, lokal, BarvaAktivni, false, tvar);
+        aktivni.Set(puvod, lokal, BarvaAktivni, false, tvar, kusOrient);
         AktualizujDucha();
         AktualizujNahled();
     }
@@ -300,7 +302,7 @@ public class GameManager : MonoBehaviour
         if (duch == null || lokal == null) return;
         var g = puvod;
         while (board.CanPlace(g + Vector3Int.down, lokal)) g += Vector3Int.down;
-        duch.Set(g, lokal, BarvaAktivni, true, tvar);
+        duch.Set(g, lokal, BarvaAktivni, true, tvar, kusOrient);
         // když je duch na stejném místě jako kus, trochu ho schovej
         bool same = g == puvod;
         if (same) duch.Hide();
@@ -313,7 +315,7 @@ public class GameManager : MonoBehaviour
         var n = puvod + d;
         if (!board.CanPlace(n, lokal)) return false;
         puvod = n;
-        if (aktivni != null) aktivni.Set(puvod, lokal, BarvaAktivni, false, tvar);
+        if (aktivni != null) aktivni.Set(puvod, lokal, BarvaAktivni, false, tvar, kusOrient);
         AktualizujDucha();
         return true;
     }
@@ -339,7 +341,8 @@ public class GameManager : MonoBehaviour
                 lokal = rot;
                 puvod = o;
                 vizPuvod = puvod;
-                if (aktivni != null) aktivni.Set(puvod, lokal, BarvaAktivni, false, tvar);
+                kusOrient = PieceShapes.Rotation(osa, smer) * kusOrient;
+                if (aktivni != null) aktivni.Set(puvod, lokal, BarvaAktivni, false, tvar, kusOrient);
                 AktualizujDucha();
                 return true;
             }
@@ -726,7 +729,7 @@ public class GameManager : MonoBehaviour
         string content = KostkaSkin.JumpOfCurrent();
         if (content == "miku" && canvas != null)
         {
-            var tex = KostkaSkin.FaceTex("SkinFaces/MikuFace");
+            var tex = KostkaSkin.FaceTex("SkinFaces/MikuJump") ?? KostkaSkin.FaceTex("SkinFaces/MikuFace");
             if (tex != null)
             {
                 yield return JumpscarePavouk.HrajObrazek(canvas, tex, KostkaSkin.JumpscareClip("miku"));
@@ -1087,7 +1090,7 @@ public class GameManager : MonoBehaviour
     {
         KostkaSkin.RefreshRenderers();
         if (aktivni != null && lokal != null && stav != Stav.Titulka && stav != Stav.Skiny)
-            aktivni.SetSmooth(vizPuvod, lokal, BarvaAktivni, false, tvar);
+            aktivni.SetSmooth(vizPuvod, lokal, BarvaAktivni, false, tvar, kusOrient);
         if (duch != null && lokal != null && stav != Stav.Titulka && stav != Stav.Skiny)
             AktualizujDucha();
         if (nahled != null && stav == Stav.Hra) AktualizujNahled();
@@ -1193,6 +1196,7 @@ public class GameManager : MonoBehaviour
         if (PieceShapes.All.Length == 0) return;
         tvar = ((index % PieceShapes.All.Length) + PieceShapes.All.Length) % PieceShapes.All.Length;
         lokal = PieceShapes.Copy(PieceShapes.All[tvar].bunky);
+        kusOrient = Quaternion.identity;
         int maxY = 0;
         for (int i = 0; i < lokal.Length; i++) if (lokal[i].y > maxY) maxY = lokal[i].y;
         puvod = new Vector3Int(Board.W / 2, 5, Board.D / 2);
@@ -1203,9 +1207,15 @@ public class GameManager : MonoBehaviour
         padani = 0f;
         if (aktivni == null) aktivni = new PieceView("Aktivni", svet, false);
         if (duch == null) duch = new PieceView("Duch", svet, true);
-        aktivni.Set(puvod, lokal, BarvaAktivni, false, tvar);
+        aktivni.Set(puvod, lokal, BarvaAktivni, false, tvar, kusOrient);
         AktualizujDucha();
         AktualizujNahled();
+    }
+
+    public bool DemoRotace(int osa, int smer)
+    {
+        busy = true;
+        return ZkusRotaci(osa, smer);
     }
 
     void SkinMenuInput()

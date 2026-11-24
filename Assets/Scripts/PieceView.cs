@@ -10,6 +10,7 @@ public class PieceView
     int tvar = -1;
     KostkaMiku miku;
     KostkaAstolfo astolfo;
+    Quaternion kusOrient = Quaternion.identity;
 
     public PieceView(string name, Transform parent, bool ghost)
     {
@@ -51,16 +52,27 @@ public class PieceView
 
     public void Set(Vector3Int origin, Vector3Int[] local, Color color, bool asGhost)
     {
-        Set(origin, local, color, asGhost, tvar);
+        Set(origin, local, color, asGhost, tvar, kusOrient);
     }
 
     public void Set(Vector3Int origin, Vector3Int[] local, Color color, bool asGhost, int tvarIndex)
     {
-        SetSmooth((Vector3)origin, local, color, asGhost, tvarIndex);
+        Set(origin, local, color, asGhost, tvarIndex, kusOrient);
+    }
+
+    public void Set(Vector3Int origin, Vector3Int[] local, Color color, bool asGhost, int tvarIndex, Quaternion orient)
+    {
+        SetSmooth((Vector3)origin, local, color, asGhost, tvarIndex, orient);
     }
 
     public void SetSmooth(Vector3 origin, Vector3Int[] local, Color color, bool asGhost, int tvarIndex)
     {
+        SetSmooth(origin, local, color, asGhost, tvarIndex, kusOrient);
+    }
+
+    public void SetSmooth(Vector3 origin, Vector3Int[] local, Color color, bool asGhost, int tvarIndex, Quaternion orient)
+    {
+        kusOrient = orient;
         ghost = asGhost;
         tvar = tvarIndex;
         Show();
@@ -124,11 +136,17 @@ public class PieceView
 
     public void SetWorld(IList<Vector3Int> cells, Color color, bool asGhost)
     {
-        SetWorld(cells, color, asGhost, tvar);
+        SetWorld(cells, color, asGhost, tvar, kusOrient);
     }
 
     public void SetWorld(IList<Vector3Int> cells, Color color, bool asGhost, int tvarIndex)
     {
+        SetWorld(cells, color, asGhost, tvarIndex, kusOrient);
+    }
+
+    public void SetWorld(IList<Vector3Int> cells, Color color, bool asGhost, int tvarIndex, Quaternion orient)
+    {
+        kusOrient = orient;
         ghost = asGhost;
         tvar = tvarIndex;
         Show();
@@ -186,14 +204,14 @@ public class PieceView
         {
             if (astolfo != null) astolfo.Hide();
             if (miku == null) miku = KostkaMiku.Attach(root);
-            miku.ShowPose(id, centers, ghost, localSpace);
+            miku.ShowPose(id, centers, ghost, localSpace, localSpace ? Quaternion.identity : kusOrient);
             return;
         }
         if (KostkaSkin.IsAstolfo)
         {
             if (miku != null) miku.Hide();
             if (astolfo == null) astolfo = KostkaAstolfo.Attach(root);
-            astolfo.ShowPose(id, centers, ghost, localSpace);
+            astolfo.ShowPose(id, centers, ghost, localSpace, localSpace ? Quaternion.identity : kusOrient);
             return;
         }
         if (miku != null) miku.Hide();

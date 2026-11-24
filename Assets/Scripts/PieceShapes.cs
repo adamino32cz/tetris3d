@@ -48,6 +48,15 @@ public static class PieceShapes
         return d;
     }
 
+    // Stejná 90° rotace jako RotateCell, jako kvaternion (pro orientaci figurek).
+    public static Quaternion Rotation(int axis, int dir)
+    {
+        float a = dir > 0 ? 90f : -90f;
+        if (axis == 0) return Quaternion.Euler(a, 0f, 0f);
+        if (axis == 1) return Quaternion.Euler(0f, a, 0f);
+        return Quaternion.Euler(0f, 0f, a);
+    }
+
     public static Vector3Int[] Copy(Vector3Int[] src)
     {
         var d = new Vector3Int[src.Length];

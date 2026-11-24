@@ -86,8 +86,8 @@ Na úvodní obrazovce je tlačítko **SKINY** (nebo klávesa **K**; ve hře K d�
 V menu SKINY jde napsat tajný kód a potvrdit Enterem (stejně jako u hada):
 
 - **67** — na všech stěnách kostek (i na duchu) běží vlastní animace „6 7“ (poskakující čísla a mávající ruka). Žádný cizí meme GIF: původní animace, viz `Assets/Resources/Skin67_ZDROJ.txt`.
-- **MIKU** — na všech stěnách kostek je stylizovaný portrét Miku (původní kresba pro školní hru).
-- **MIKU EXTRA** — každá figurka je jedna pózovaná Hatsune Miku, která zhruba kopíruje tvar kusu (téčko = T-póza, tyčka = ležící/natáhlá, čtverec = klubíčko, elko = sed/kopnutí atd.). Přečnívání je záměr. Položené buňky zůstávají kostkami v barvách Miku. Model Tda式初音ミクV4X, viz `Assets/Resources/TdaMiku/TdaMiku_ZDROJ.txt` a `License.txt` (Tda / Crypton Piapro Character License).
+- **MIKU** — na všech stěnách kostek je portrét z původní AI ilustrace vytvořené pro tuto školní hru (mint-teal cop, hvězdička ve vlasech, bílá mikina se sluchátky). Viz `Assets/Resources/SkinFaces/SkinFaces_ZDROJ.txt`.
+- **MIKU EXTRA** — každá figurka je jedna pózovaná Hatsune Miku, která zhruba kopíruje tvar kusu (téčko = T-póza, tyčka = ležící/natáhlá, čtverec = klubíčko, elko = sed/kopnutí atd.) a otáčí se s každou rotací kusu (Q/E, Shift+WASD); po dopadu si orientaci nechá. Přečnívání je záměr. Model Tda式初音ミクV4X, viz `Assets/Resources/TdaMiku/TdaMiku_ZDROJ.txt` a `License.txt` (Tda / Crypton Piapro Character License).
 - **ASTOLFO** — na všech stěnách kostek je stylizovaný portrét inspirovaný Astolfem (Fate/Apocrypha, Type-Moon); původní kresba, není oficiální artwork.
 - **ASTOLFO EXTRA** — každá figurka je jedna pózovaná zjednodušená 3D figurka (růžové vlasy, černá mašle, fialová mikina, černá sukně, bílé podkolenky, jeden cop a velká černá mašle) v póze podle tvaru kusu. Oficiální artwork ani volně redistribuovatelný VRM/FBX se použít nedaly, proto je portrét i model původní, inspirované typickým vzhledem postavy. Viz `Assets/Resources/SkinFaces/SkinFaces_ZDROJ.txt`.
 - **DEV** — neodemyká skin, ale skrytý panel **DEV / modifikace** v menu SKINY. Pro právě vybraný skin lze nastavit:

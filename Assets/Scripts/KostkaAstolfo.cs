@@ -12,6 +12,7 @@ public class KostkaAstolfo : MonoBehaviour
     Material[] ghostMats;
     bool ghost, ready;
     string poseId;
+    Quaternion pieceOrient = Quaternion.identity;
     static Texture2D faceTex, hairTex, clothTex, blackTex, skinTex;
 
     public static KostkaAstolfo Attach(Transform parent)
@@ -27,8 +28,9 @@ public class KostkaAstolfo : MonoBehaviour
 
     public void Hide() { gameObject.SetActive(false); }
 
-    public void ShowPose(string shapeId, IList<Vector3> cellCenters, bool asGhost, bool localSpace)
+    public void ShowPose(string shapeId, IList<Vector3> cellCenters, bool asGhost, bool localSpace, Quaternion orient)
     {
+        pieceOrient = orient;
         if (!ready) { gameObject.SetActive(false); return; }
         gameObject.SetActive(true);
         if (poseId != shapeId)
@@ -245,17 +247,17 @@ public class KostkaAstolfo : MonoBehaviour
         mid /= centers.Count;
         Vector3 size = (max - min) + Vector3.one;
 
-        Quaternion rot = Quaternion.identity;
+        Quaternion baseRot = poseId == "I" ? Quaternion.Euler(0f, 0f, -90f) : Quaternion.identity;
+        Quaternion rot = localSpace ? Quaternion.identity : (pieceOrient * baseRot);
         float targetY = Mathf.Max(size.y, localSpace ? 1.6f : 2.2f);
         float targetX = Mathf.Max(size.x, size.z);
         if (poseId == "I")
         {
-            if (size.y >= size.x && size.y >= size.z) { rot = Quaternion.identity; targetY = size.y; }
-            else if (size.x >= size.z) { rot = Quaternion.Euler(0f, 0f, -90f); targetX = size.x; targetY = 1.1f; }
-            else { rot = Quaternion.Euler(90f, 0f, 0f); targetX = size.z; targetY = 1.1f; }
+            if (size.y >= size.x && size.y >= size.z) { targetY = size.y; }
+            else if (size.x >= size.z) { targetX = size.x; targetY = 1.1f; }
+            else { targetX = size.z; targetY = 1.1f; }
         }
-        else if (size.z > size.x + 0.4f) rot = Quaternion.Euler(0f, 90f, 0f);
-        if (localSpace) { rot = Quaternion.identity; targetY = 1.7f; targetX = 1.5f; }
+        if (localSpace) { targetY = 1.7f; targetX = 1.5f; }
 
         transform.localScale = Vector3.one;
         if (localSpace) transform.localRotation = rot;

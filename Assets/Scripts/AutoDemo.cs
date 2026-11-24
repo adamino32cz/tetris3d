@@ -11,6 +11,7 @@ using UnityEngine;
 //   -skinshots      uloží snímky menu a skinů (skins_*.png)
 //   -fixshots       snímky opravy EXTRA/Astolfo (fix_*.png)
 //   -fix2shots      nový Astolfo portrét, jumpscare a menu na konci
+//   -fix4shots      otočená MIKU EXTRA a nový portrét Miku
 //   -openskins      otevře menu SKINY
 //   -skin <id>      vybere vzhled (pastel/neon/mono/candy/ocean/forest/67/miku)
 public class AutoDemo : MonoBehaviour
@@ -19,7 +20,7 @@ public class AutoDemo : MonoBehaviour
 
     void Start()
     {
-        if (CmdArgs.Has("-autoplay") || CmdArgs.Has("-screenshots") || CmdArgs.Has("-demo") || CmdArgs.Has("-jumpscare") || CmdArgs.Has("-skinshots") || CmdArgs.Has("-fixshots") || CmdArgs.Has("-fix2shots") || CmdArgs.Has("-openskins"))
+        if (CmdArgs.Has("-autoplay") || CmdArgs.Has("-screenshots") || CmdArgs.Has("-demo") || CmdArgs.Has("-jumpscare") || CmdArgs.Has("-skinshots") || CmdArgs.Has("-fixshots") || CmdArgs.Has("-fix2shots") || CmdArgs.Has("-fix4shots") || CmdArgs.Has("-openskins"))
             StartCoroutine(Run());
     }
 
@@ -28,6 +29,11 @@ public class AutoDemo : MonoBehaviour
         yield return null;
         yield return null;
 
+        if (CmdArgs.Has("-fix4shots"))
+        {
+            yield return TakeFix4Shots();
+            yield break;
+        }
         if (CmdArgs.Has("-fix2shots"))
         {
             yield return TakeFix2Shots();
@@ -209,6 +215,52 @@ public class AutoDemo : MonoBehaviour
         yield return Shot(dir, "skins_dev.png");
 
         try { File.WriteAllText(Path.Combine(dir, "skins_done.txt"), "ok"); }
+        catch { /* ignore */ }
+        yield return new WaitForSeconds(0.2f);
+        Application.Quit();
+#if UNITY_EDITOR
+        UnityEditor.EditorApplication.isPlaying = false;
+#endif
+    }
+
+    IEnumerator TakeFix4Shots()
+    {
+        string dir = CmdArgs.Value("-shotdir", Path.Combine(Application.dataPath, "..", "Screenshots"));
+        try { Directory.CreateDirectory(dir); }
+        catch { /* ignore */ }
+
+        if (CameraOrbit.I != null)
+        {
+            CameraOrbit.I.autoOrbit = false;
+            CameraOrbit.I.yaw = 38f;
+            CameraOrbit.I.targetYaw = 38f;
+            CameraOrbit.I.pitch = 42f;
+        }
+
+        // MIKU EXTRA: T-póza, několik rotací (Y, X, Z) — figurka musí sledovat kus
+        if (GameManager.I != null)
+        {
+            GameManager.I.TryUnlockCode("MIKU EXTRA");
+            GameManager.I.SelectSkinId("miku_extra");
+            GameManager.I.StartGame(true);
+            GameManager.I.DemoNastavTvar(3);
+            GameManager.I.DemoRotace(1, 1);  // E / +Y
+            GameManager.I.DemoRotace(1, 1);
+            GameManager.I.DemoRotace(0, 1);  // +X
+        }
+        yield return new WaitForSeconds(0.85f);
+        yield return Shot(dir, "fix4_miku_extra_rotated.png");
+
+        if (GameManager.I != null)
+        {
+            GameManager.I.TryUnlockCode("MIKU");
+            GameManager.I.SelectSkinId("miku");
+            GameManager.I.StartGame(true);
+        }
+        yield return new WaitForSeconds(0.85f);
+        yield return Shot(dir, "fix4_miku_face.png");
+
+        try { File.WriteAllText(Path.Combine(dir, "fix4_done.txt"), "ok"); }
         catch { /* ignore */ }
         yield return new WaitForSeconds(0.2f);
         Application.Quit();
