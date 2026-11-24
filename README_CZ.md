@@ -57,13 +57,14 @@ Hotový WebGL se nahraje na GitHub Pages skriptem `Tools/publish_webgl.sh`. Kdy�
 Skryté klávesy (nejsou v tabulce ovládání ve hře):
 
 - **J** — zapne / vypne jumpscare po smazání řady (výchozí: zapnuto, volba se pamatuje).
-- **K** — přepne styl jumpscaru mezi klasickým (fotka) a procedurálním 3D pavoukem a hned přehraje ukázku. Výchozí styl je klasický fotojumpscare.
+- **K** — přepíná styl jumpscaru v cyklu **animovaný → fotka → procedurální 3D** a hned přehraje ukázku. Výchozí styl je animovaný (živý fotojumpscare: skok z tmy, škubání, glitch a silnější řev).
 
 ### Zdroj fotografie pavouka
 
-Soubor `Assets/Resources/PavoukKlasik.jpg` vychází z fotografie:
+Soubory `Assets/Resources/PavoukKlasik.jpg` a `PavoukAnim0.jpg`–`PavoukAnim3.jpg` vycházejí z fotografie:
 
 - **Soubor:** [Phidippus_regius_female_01.jpg](https://commons.wikimedia.org/wiki/File:Phidippus_regius_female_01.jpg) (Wikimedia Commons)
 - **Autor:** [Nosferattus](https://commons.wikimedia.org/wiki/User:Nosferattus)
 - **Licence:** [CC0 1.0 Universal](https://creativecommons.org/publicdomain/zero/1.0/) (Public Domain Dedication) — lze upravovat i použít komerčně bez uvedení autora
-- Úprava ve hře: ořez a ztmavení pozadí.
+- Úpravy ve hře: ořez, ztmavení pozadí; u animovaného stylu navíc varianty kontrastu, otočení a zvýraznění očí pro stop-motion pohyb.
+- Poznámka ke zdroji je i v `Assets/Resources/PavoukKlasik_ZDROJ.txt` a `PavoukAnim_ZDROJ.txt`.

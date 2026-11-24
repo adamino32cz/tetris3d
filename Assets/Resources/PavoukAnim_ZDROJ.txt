@@ -1,0 +1,13 @@
+Animované snímky PavoukAnim0.jpg–PavoukAnim3.jpg pro jumpscare styl „animovaný“.
+
+Vycházejí z téže fotografie jako PavoukKlasik.jpg:
+
+- Soubor: Phidippus_regius_female_01.jpg
+- Autor: Nosferattus
+- Licence: CC0 1.0 Universal (Public Domain Dedication)
+  https://creativecommons.org/publicdomain/zero/1.0/
+- Zdroj: https://commons.wikimedia.org/wiki/File:Phidippus_regius_female_01.jpg
+- Originál: https://upload.wikimedia.org/wikipedia/commons/9/9e/Phidippus_regius_female_01.jpg
+
+Úpravy ve hře: ořez, ztmavení pozadí, varianty kontrastu, otočení a zvýraznění očí
+pro stop-motion pohyb při jumpscaru. Autorství není povinné (CC0).

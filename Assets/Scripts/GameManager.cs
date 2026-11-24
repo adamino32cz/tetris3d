@@ -26,15 +26,17 @@ public class GameManager : MonoBehaviour
 
     const string PrefRekord = "Kostka.HighScore";
     const string PrefJumpscare = "Kostka.Jumpscare";
-    const string PrefJumpscareStyl = "Kostka.JumpscareStyl";
-    public const int StylKlasik = 1;
+    const string PrefJumpscareStyl = "Kostka.JumpscareStylV2";
     public const int Styl3D = 0;
+    public const int StylKlasik = 1;
+    public const int StylAnim = 2;
     const int RadNaLevel = 8;
 
     int skore, rekord, level = 1, rady;
     public bool jumpscareZapnuto = true;
-    public int jumpscareStyl = StylKlasik;
+    public int jumpscareStyl = StylAnim;
     Texture2D pavoukFoto;
+    Texture2D[] pavoukAnim;
     int tvar, dalsiTvar;
     Vector3Int puvod;
     Vector3Int[] lokal;
@@ -68,8 +70,16 @@ public class GameManager : MonoBehaviour
         QualitySettings.SetQualityLevel(Mathf.Max(0, QualitySettings.names.Length - 1), true);
         rekord = PlayerPrefs.GetInt(PrefRekord, 0);
         jumpscareZapnuto = PlayerPrefs.GetInt(PrefJumpscare, 1) != 0;
-        jumpscareStyl = PlayerPrefs.GetInt(PrefJumpscareStyl, StylKlasik);
+        jumpscareStyl = PlayerPrefs.GetInt(PrefJumpscareStyl, StylAnim);
         pavoukFoto = Resources.Load<Texture2D>("PavoukKlasik");
+        var anim = new System.Collections.Generic.List<Texture2D>();
+        for (int i = 0; i < 4; i++)
+        {
+            var f = Resources.Load<Texture2D>("PavoukAnim" + i);
+            if (f != null) anim.Add(f);
+        }
+        if (anim.Count == 0 && pavoukFoto != null) anim.Add(pavoukFoto);
+        pavoukAnim = anim.ToArray();
         KostkaVisual.SetTemplates(litTemplate, unlitTemplate);
         KostkaVisual.Init();
         ZajistiPisma();
@@ -498,7 +508,10 @@ public class GameManager : MonoBehaviour
 
     public void PrepnoutStyl()
     {
-        jumpscareStyl = (jumpscareStyl == StylKlasik) ? Styl3D : StylKlasik;
+        // animovaný → fotka → procedurální 3D → animovaný
+        if (jumpscareStyl == StylAnim) jumpscareStyl = StylKlasik;
+        else if (jumpscareStyl == StylKlasik) jumpscareStyl = Styl3D;
+        else jumpscareStyl = StylAnim;
         PlayerPrefs.SetInt(PrefJumpscareStyl, jumpscareStyl);
         PlayerPrefs.Save();
         if (!busy) StartCoroutine(UkázatStylANahled());
@@ -507,7 +520,9 @@ public class GameManager : MonoBehaviour
     IEnumerator UkázatStylANahled()
     {
         busy = true;
-        string txt = jumpscareStyl == StylKlasik ? "Pavouk: klasik" : "Pavouk: 3D";
+        string txt = jumpscareStyl == StylAnim ? "Pavouk: animovaný"
+                   : jumpscareStyl == StylKlasik ? "Pavouk: fotka"
+                   : "Pavouk: 3D";
         yield return UkázatNapis(txt, 0.45f);
         yield return Jumpscare();
         busy = false;
@@ -536,7 +551,9 @@ public class GameManager : MonoBehaviour
 
     IEnumerator Jumpscare()
     {
-        if (jumpscareStyl == StylKlasik && pavoukFoto != null && canvas != null)
+        if (jumpscareStyl == StylAnim && pavoukAnim != null && pavoukAnim.Length > 0 && canvas != null)
+            yield return JumpscarePavouk.HrajAnimovany(canvas, pavoukAnim, 1.25f);
+        else if (jumpscareStyl == StylKlasik && pavoukFoto != null && canvas != null)
             yield return JumpscarePavouk.HrajKlasik(canvas, pavoukFoto, 1.05f);
         else
             yield return JumpscarePavouk.Hraj(Camera.main, 1.05f);

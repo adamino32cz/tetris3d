@@ -257,4 +257,200 @@ public class JumpscarePavouk : MonoBehaviour
         Object.Destroy(root);
     }
 
+
+
+    // Animovaný jumpscare: tma, prudký skok z dálky, živé snímky, glitch, šum, třes.
+    public static IEnumerator HrajAnimovany(Canvas canvas, Texture2D[] snimky, float trvani = 1.25f)
+    {
+        if (canvas == null || snimky == null || snimky.Length == 0) yield break;
+        var foto = snimky[0];
+        if (foto == null) yield break;
+
+        var root = new GameObject("PavoukAnimUI");
+        root.transform.SetParent(canvas.transform, false);
+        root.transform.SetAsLastSibling();
+        var rootRt = root.AddComponent<RectTransform>();
+        rootRt.anchorMin = Vector2.zero;
+        rootRt.anchorMax = Vector2.one;
+        rootRt.offsetMin = Vector2.zero;
+        rootRt.offsetMax = Vector2.zero;
+
+        var flashGo = new GameObject("Flash");
+        flashGo.transform.SetParent(root.transform, false);
+        var flash = flashGo.AddComponent<Image>();
+        flash.color = new Color(0f, 0f, 0f, 1f);
+        var frt = flash.rectTransform;
+        frt.anchorMin = Vector2.zero;
+        frt.anchorMax = Vector2.one;
+        frt.offsetMin = Vector2.zero;
+        frt.offsetMax = Vector2.zero;
+
+        var fotoRootGo = new GameObject("FotoRoot");
+        fotoRootGo.transform.SetParent(root.transform, false);
+        var fotoRoot = fotoRootGo.AddComponent<RectTransform>();
+        fotoRoot.anchorMin = new Vector2(0.5f, 0.5f);
+        fotoRoot.anchorMax = new Vector2(0.5f, 0.5f);
+        fotoRoot.pivot = new Vector2(0.5f, 0.62f);
+        var canvRt = canvas.GetComponent<RectTransform>();
+        float h = (canvRt != null && canvRt.rect.height > 1f) ? canvRt.rect.height : 1080f;
+        float aspect = (float)foto.width / Mathf.Max(1, foto.height);
+        fotoRoot.sizeDelta = new Vector2(h * aspect, h);
+        fotoRoot.localScale = Vector3.one * 0.08f;
+
+        RawImage AddFoto(string name, Color tint, Vector2 offset, int sib)
+        {
+            var go = new GameObject(name);
+            go.transform.SetParent(fotoRoot, false);
+            var raw = go.AddComponent<RawImage>();
+            raw.texture = foto;
+            raw.color = tint;
+            raw.raycastTarget = false;
+            var rt = raw.rectTransform;
+            rt.anchorMin = Vector2.zero;
+            rt.anchorMax = Vector2.one;
+            rt.offsetMin = Vector2.zero;
+            rt.offsetMax = Vector2.zero;
+            rt.anchoredPosition = offset;
+            go.transform.SetSiblingIndex(sib);
+            return raw;
+        }
+
+        var after = AddFoto("After", new Color(1f, 1f, 1f, 0f), Vector2.zero, 0);
+        after.rectTransform.localScale = Vector3.one * 1.08f;
+        var main = AddFoto("Foto", Color.white, Vector2.zero, 1);
+        var chromaR = AddFoto("ChromaR", new Color(1f, 0.05f, 0.05f, 0f), new Vector2(-10f, 0f), 2);
+        var chromaB = AddFoto("ChromaB", new Color(0.05f, 0.7f, 1f, 0f), new Vector2(10f, 0f), 3);
+
+        var noiseTex = new Texture2D(192, 192, TextureFormat.RGBA32, false);
+        noiseTex.wrapMode = TextureWrapMode.Repeat;
+        noiseTex.filterMode = FilterMode.Point;
+        var pix = new Color32[192 * 192];
+        var rng = new System.Random(77);
+
+        var noiseGo = new GameObject("Sum");
+        noiseGo.transform.SetParent(root.transform, false);
+        var noise = noiseGo.AddComponent<RawImage>();
+        noise.texture = noiseTex;
+        noise.raycastTarget = false;
+        noise.color = new Color(1f, 1f, 1f, 0f);
+        var nrt = noise.rectTransform;
+        nrt.anchorMin = Vector2.zero;
+        nrt.anchorMax = Vector2.one;
+        nrt.offsetMin = Vector2.zero;
+        nrt.offsetMax = Vector2.zero;
+
+        bool screamPlayed = false;
+        float t = 0f;
+        while (t < trvani)
+        {
+            t += Time.unscaledDeltaTime;
+            float k = Mathf.Clamp01(t / trvani);
+
+            if (!screamPlayed && t >= 0.10f)
+            {
+                screamPlayed = true;
+                if (SoundFX.I != null) SoundFX.I.ScreamSilny();
+                if (CameraOrbit.I != null) CameraOrbit.I.shake = 0.85f;
+            }
+
+            // Snímky – po výpadu živější přepínání
+            int fi;
+            if (t < 0.10f) fi = 0;
+            else if (t < 0.28f) fi = Mathf.Min(snimky.Length - 1, 1 + Mathf.FloorToInt((t - 0.10f) * 18f) % Mathf.Max(1, snimky.Length - 1));
+            else fi = Mathf.FloorToInt(t * 16f) % snimky.Length;
+            var cur = snimky[Mathf.Clamp(fi, 0, snimky.Length - 1)];
+            if (cur != null)
+            {
+                main.texture = cur;
+                after.texture = cur;
+                chromaR.texture = cur;
+                chromaB.texture = cur;
+            }
+
+            float scale;
+            if (t < 0.10f)
+            {
+                scale = 0.08f;
+                flash.color = new Color(0f, 0f, 0f, 1f);
+                main.color = new Color(1f, 1f, 1f, 0f);
+            }
+            else if (t < 0.28f)
+            {
+                float u = (t - 0.10f) / 0.18f;
+                // Drží se malý, pak prudce vyplní obrazovku (overshoot).
+                float snap = u < 0.42f
+                    ? Mathf.Lerp(0f, 0.18f, u / 0.42f)
+                    : 0.18f + (1f - Mathf.Pow(1f - (u - 0.42f) / 0.58f, 3f)) * 0.82f;
+                scale = Mathf.Lerp(0.10f, 1.62f, snap);
+                if (u < 0.12f)
+                    flash.color = Color.Lerp(new Color(1f, 1f, 1f, 0.95f), new Color(0.8f, 0.02f, 0.02f, 0.9f), u / 0.12f);
+                else
+                    flash.color = Color.Lerp(new Color(0.8f, 0.02f, 0.02f, 0.9f), new Color(0f, 0f, 0f, 0.35f), (u - 0.12f) / 0.88f);
+                main.color = Color.white;
+                if (CameraOrbit.I != null) CameraOrbit.I.shake = 0.85f;
+            }
+            else if (t < 0.72f)
+            {
+                float u = (t - 0.28f) / 0.44f;
+                // Škubání v obličeji, občas trhnutí blíž.
+                float jerk = (Mathf.FloorToInt(t * 11f) % 5 == 0) ? 0.16f : 0f;
+                scale = 1.50f + Mathf.Sin(t * 33f) * 0.05f + jerk;
+                flash.color = new Color(0f, 0f, 0f, Mathf.Lerp(0.35f, 0.12f, u));
+                if (CameraOrbit.I != null) CameraOrbit.I.shake = 0.55f + jerk * 0.8f;
+            }
+            else if (t < 1.00f)
+            {
+                float u = (t - 0.72f) / 0.28f;
+                scale = Mathf.Lerp(1.50f, 1.92f, 1f - Mathf.Pow(1f - u, 2f));
+                flash.color = Color.Lerp(new Color(0.55f, 0.0f, 0.0f, 0.45f), new Color(0f, 0f, 0f, 0.2f), u);
+                if (CameraOrbit.I != null) CameraOrbit.I.shake = 0.7f;
+            }
+            else
+            {
+                float u = (t - 1.00f) / Mathf.Max(0.01f, trvani - 1.00f);
+                scale = Mathf.Lerp(1.92f, 2.15f, u);
+                float fade = 1f - u;
+                main.color = new Color(1f, 1f, 1f, fade);
+                flash.color = new Color(0f, 0f, 0f, Mathf.Lerp(0.2f, 0f, u));
+            }
+
+            // Chromatic aberration a afterimage po výpadu
+            float glitch = t >= 0.10f && t < 1.00f ? (t < 0.28f ? 0.55f : 0.35f) : 0f;
+            if (t >= 1.00f) glitch = main.color.a * 0.2f;
+            chromaR.color = new Color(1f, 0.05f, 0.05f, glitch * 0.55f);
+            chromaB.color = new Color(0.05f, 0.7f, 1f, glitch * 0.5f);
+            float split = 8f + Mathf.Sin(t * 40f) * 10f + ((rng.Next(0, 7) == 0) ? 16f : 0f);
+            chromaR.rectTransform.anchoredPosition = new Vector2(-split, Mathf.Sin(t * 21f) * 4f);
+            chromaB.rectTransform.anchoredPosition = new Vector2(split, Mathf.Cos(t * 19f) * 4f);
+            after.color = new Color(1f, 1f, 1f, glitch * 0.28f);
+            after.rectTransform.localScale = Vector3.one * (1.06f + Mathf.Sin(t * 25f) * 0.04f);
+
+            fotoRoot.localScale = Vector3.one * scale;
+            float jx = t >= 0.10f ? Mathf.Sin(t * 47f) * 22f + ((rng.Next(0, 6) == 0) ? rng.Next(-28, 29) : 0) : 0f;
+            float jy = t >= 0.10f ? Mathf.Cos(t * 39f) * 16f + ((rng.Next(0, 6) == 0) ? rng.Next(-20, 21) : 0) : 0f;
+            fotoRoot.anchoredPosition = new Vector2(jx, jy);
+            fotoRoot.localRotation = Quaternion.Euler(0f, 0f, t >= 0.10f ? Mathf.Sin(t * 29f) * 3.5f : 0f);
+
+            // Statický šum / glitch
+            if (t >= 0.10f)
+            {
+                for (int i = 0; i < pix.Length; i++)
+                {
+                    byte v = (byte)rng.Next(0, 256);
+                    pix[i] = new Color32(v, v, v, 255);
+                }
+                noiseTex.SetPixels32(pix);
+                noiseTex.Apply(false);
+                float na = t < 1.00f ? (0.10f + (rng.Next(0, 5) == 0 ? 0.22f : 0f)) : main.color.a * 0.08f;
+                noise.color = new Color(1f, 1f, 1f, na);
+                noise.uvRect = new Rect((float)rng.NextDouble(), (float)rng.NextDouble(), 2.4f, 2.4f);
+            }
+
+            yield return null;
+        }
+
+        Object.Destroy(noiseTex);
+        Object.Destroy(root);
+    }
+
 }

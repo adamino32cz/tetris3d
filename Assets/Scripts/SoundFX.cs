@@ -48,6 +48,88 @@ public class SoundFX : MonoBehaviour
         src.PlayOneShot(clip, 1f);
     }
 
+    // Silnější screamer: rána, zkreslený vřískot a šum. Hlasitěji než Scream().
+    public void ScreamSilny()
+    {
+        if (src == null) return;
+        src.volume = 1f;
+        src.PlayOneShot(MakeImpact(), 1f);
+        src.PlayOneShot(MakeHarshScream(), 1f);
+        src.PlayOneShot(MakeNoiseBurst(), 0.95f);
+    }
+
+    static AudioClip MakeImpact()
+    {
+        int rate = 22050;
+        float dur = 0.22f;
+        int n = Mathf.Max(64, (int)(dur * rate));
+        var data = new float[n];
+        var rng = new System.Random(91);
+        float phase = 0f;
+        for (int i = 0; i < n; i++)
+        {
+            float tm = i / (float)rate;
+            float env = Mathf.Exp(-tm * 14f);
+            float freq = Mathf.Lerp(90f, 32f, tm / dur);
+            phase += 2f * Mathf.PI * freq / rate;
+            float wave = Mathf.Sin(phase) * 0.85f + (float)(rng.NextDouble() * 2.0 - 1.0) * 0.55f;
+            data[i] = Mathf.Clamp((float)System.Math.Tanh(wave * 2.4f) * env, -1f, 1f);
+        }
+        var clip = AudioClip.Create("impact", n, 1, rate, false);
+        clip.SetData(data, 0);
+        return clip;
+    }
+
+    static AudioClip MakeHarshScream()
+    {
+        int rate = 22050;
+        float dur = 1.15f;
+        int n = Mathf.Max(64, (int)(dur * rate));
+        var data = new float[n];
+        var rng = new System.Random(23);
+        float phase = 0f, phase2 = 0f;
+        for (int i = 0; i < n; i++)
+        {
+            float tm = i / (float)rate;
+            float k = tm / dur;
+            float env = (tm < 0.02f ? tm / 0.02f : 1f) * Mathf.Exp(-tm * 1.55f);
+            float freq;
+            if (k < 0.12f)
+                freq = Mathf.Lerp(700f, 2400f, k / 0.12f);
+            else
+                freq = Mathf.Lerp(2400f, 160f, (k - 0.12f) / 0.88f);
+            freq += Mathf.Sin(tm * 70f) * 220f + Mathf.Sin(tm * 17f) * 90f;
+            phase += 2f * Mathf.PI * freq / rate;
+            phase2 += 2f * Mathf.PI * (freq * 1.53f + 40f) / rate;
+            float buzz = Mathf.Sin(phase) + 0.55f * Mathf.Sin(phase2) + 0.28f * Mathf.Sin(phase * 2.7f);
+            float noise = (float)(rng.NextDouble() * 2.0 - 1.0);
+            float mix = buzz * 0.72f + noise * (0.38f + 0.25f * env);
+            data[i] = Mathf.Clamp((float)System.Math.Tanh(mix * 2.6f) * env, -1f, 1f);
+        }
+        var clip = AudioClip.Create("screamHarsh", n, 1, rate, false);
+        clip.SetData(data, 0);
+        return clip;
+    }
+
+    static AudioClip MakeNoiseBurst()
+    {
+        int rate = 22050;
+        float dur = 0.38f;
+        int n = Mathf.Max(64, (int)(dur * rate));
+        var data = new float[n];
+        var rng = new System.Random(41);
+        for (int i = 0; i < n; i++)
+        {
+            float tm = i / (float)rate;
+            float env = (tm < 0.015f ? tm / 0.015f : 1f) * Mathf.Exp(-tm * 8f);
+            float noise = (float)(rng.NextDouble() * 2.0 - 1.0);
+            data[i] = Mathf.Clamp(noise * env, -1f, 1f);
+        }
+        var clip = AudioClip.Create("noiseBurst", n, 1, rate, false);
+        clip.SetData(data, 0);
+        return clip;
+    }
+
     void Play(float freq, float dur, float vol, float decay)
     {
         if (src == null) return;
