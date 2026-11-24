@@ -50,14 +50,14 @@ Hotový WebGL se nahraje na GitHub Pages skriptem `Tools/publish_webgl.sh`. Kdy�
 
 - Grafika je záměrně jiná než u hada: světlé pastelové kostky, krémové pozadí, měkké stíny.
 - Ve hře je 8 tvarů (tyčka, čtverec, elko, téčko, es, roh, šroub, kříž).
-- Testovací parametry přehrávače: `-autoplay`, `-screenshots`, `-shotdir <složka>`, `-demo`, `-jumpscare`.
+- Testovací parametry přehrávače: `-autoplay`, `-screenshots`, `-shotdir <složka>`, `-demo`, `-jumpscare`, `-skinshots`, `-openskins`, `-skin <id>`.
 
 ## Pro učitele / vývojáře
 
 Skryté klávesy (nejsou v tabulce ovládání ve hře):
 
 - **J** — zapne / vypne jumpscare po smazání řady (výchozí: zapnuto, volba se pamatuje).
-- **K** — přepíná styl jumpscaru v cyklu **video → animovaný → fotka → procedurální 3D** a hned přehraje ukázku. Výchozí styl je video (vystřižený pavouk z klipu přes ztmavenou hru, třes a zvuk z originálu).
+- **K** — ve hře přepíná styl jumpscaru v cyklu **video → animovaný → fotka → procedurální 3D** a hned přehraje ukázku. Výchozí styl je video. Na úvodní obrazovce **K** otevře menu **SKINY** (stejně jako tlačítko SKINY).
 
 ### Zdroj videa pavouka
 
@@ -78,3 +78,23 @@ Soubory `Assets/Resources/PavoukKlasik.jpg` a `PavoukAnim0.jpg`–`PavoukAnim3.j
 - **Licence:** [CC0 1.0 Universal](https://creativecommons.org/publicdomain/zero/1.0/) (Public Domain Dedication) — lze upravovat i použít komerčně bez uvedení autora
 - Úpravy ve hře: ořez, ztmavení pozadí; u animovaného stylu navíc varianty kontrastu, otočení a zvýraznění očí pro stop-motion pohyb.
 - Poznámka ke zdroji je i v `Assets/Resources/PavoukKlasik_ZDROJ.txt` a `PavoukAnim_ZDROJ.txt`.
+
+### Skiny kostek
+
+Na úvodní obrazovce je tlačítko **SKINY** (nebo klávesa **K**; ve hře K dál cykluje styl pavoučího jumpscaru). Jsou tu palety **Pastel** (výchozí), **Neon**, **Černobílá**, **Bonbóny**, **Oceán** a **Les**. Výběr se ukládá do `PlayerPrefs` (`Kostka.Skin`).
+
+V menu SKINY jde napsat tajný kód a potvrdit Enterem (stejně jako u hada):
+
+- **67** — na všech stěnách kostek (i na duchu) běží vlastní animace „6 7“ (poskakující čísla a mávající ruka). Žádný cizí meme GIF: původní animace, viz `Assets/Resources/Skin67_ZDROJ.txt`.
+- **MIKU** — na všech stěnách kostek je stylizovaný portrét Miku (původní kresba pro školní hru).
+- **MIKU EXTRA** — každá figurka je jedna pózovaná Hatsune Miku, která zhruba kopíruje tvar kusu (téčko = T-póza, tyčka = ležící/natáhlá, čtverec = klubíčko, elko = sed/kopnutí atd.). Přečnívání je záměr. Položené buňky zůstávají kostkami v barvách Miku. Model Tda式初音ミクV4X, viz `Assets/Resources/TdaMiku/TdaMiku_ZDROJ.txt` a `License.txt` (Tda / Crypton Piapro Character License).
+- **ASTOLFO** — na všech stěnách kostek je stylizovaný portrét inspirovaný Astolfem (Fate/Apocrypha, Type-Moon); původní kresba, není oficiální artwork.
+- **ASTOLFO EXTRA** — každá figurka je jedna pózovaná zjednodušená 3D figurka (růžové vlasy, černá mašle, bílo-růžový outfit) v póze podle tvaru kusu. Volně redistribuovatelný fanouškovský VRM/FBX se bez přihlášení nepodařilo stáhnout (Gumroad / VRoid Hub), proto je model původní, inspirovaný postavou. Viz `Assets/Resources/SkinFaces/SkinFaces_ZDROJ.txt`.
+- **DEV** — neodemyká skin, ale skrytý panel **DEV / modifikace** v menu SKINY. Pro právě vybraný skin lze nastavit:
+  - zvuk při smazání řady: výchozí akord, **mňau** (CC0, Joseph Sardin / BigSoundBank č. 494), krátké neexplicitní **yamete kudasai** (vlastní TTS espeak-ng), nebo hláška **67** (vlastní TTS). Dokud panel není odemčený nebo je u skinu „Výchozí“, hraje se původní akord.
+  - obsah jumpscaru: výchozí **pavouk** (stávající módy video/anim/fotka/3D, klávesa K ve hře), nebo vyskakovací **Astolfo** / **Miku** / **67** se zvukem.
+  Nastavení se ukládá (`Kostka.SkinSfx_*`, `Kostka.SkinJump_*`, `Kostka.DevUnlocked`).
+
+Test: `-skin neon`, `-skin 67`, `-skin miku`, `-skin miku_extra`, `-skin astolfo`, `-skin astolfo_extra`, `-dev`, `-openskins`, `-skinshots`.
+
+Zdroje zvuků: `Assets/Resources/SkinSfx/SkinSfx_ZDROJ.txt`.

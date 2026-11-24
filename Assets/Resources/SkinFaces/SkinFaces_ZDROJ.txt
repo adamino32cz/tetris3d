@@ -1,0 +1,13 @@
+Portréty na stěnách kostek (skiny MIKU a ASTOLFO) a pro jumpscare v panelu DEV:
+
+- MikuFace.png — původní stylizovaný portrét pro školní hru KOSTKA, inspirovaný
+  postavou Hatsune Miku. 3D model ve skinech MIKU EXTRA je Tda式初音ミクV4X
+  (viz Assets/Resources/TdaMiku/TdaMiku_ZDROJ.txt, licence Crypton Piapro
+  Character License + Tda / Jjinomu).
+
+- AstolfoFace.png — původní stylizovaný portrét pro školní hru KOSTKA, inspirovaný
+  postavou Astolfo (Fate/Apocrypha, Type-Moon). Není oficiální artwork.
+  3D figurka ve skinu ASTOLFO EXTRA je původní zjednodušený model (růžové vlasy,
+  černá mašle, bílo-růžový outfit), protože se nepodařilo stáhnout volně
+  redistribuovatelný fanouškovský VRM/FBX bez přihlášení (Gumroad/VRoid Hub).
+  Postava Astolfo je dílo Type-Moon / Fate; použití je nekomerční školní.

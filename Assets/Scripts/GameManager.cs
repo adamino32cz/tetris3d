@@ -11,7 +11,7 @@ public class GameManager : MonoBehaviour
 {
     public static GameManager I;
 
-    public enum Stav { Titulka, Hra, Pauza, Konec, Mazani }
+    public enum Stav { Titulka, Skiny, Hra, Pauza, Konec, Mazani }
 
     [Header("Písma a materiály (doplní scéna)")]
     public Font fontTitleSrc;
@@ -59,12 +59,17 @@ public class GameManager : MonoBehaviour
     RenderTexture nahledRt;
 
     Canvas canvas;
-    RectTransform titulka, hud, pauzaPanel, konecPanel;
+    RectTransform titulka, hud, pauzaPanel, konecPanel, skinyPanel;
     TextMeshProUGUI txtSkore, txtRekord, txtLevel, txtRady, txtKonecSkore, txtTitulRekord, txtCombo, txtTabulka, txtNapis;
+    TextMeshProUGUI txtSkinyKod, txtSkinyHint;
+    Transform skinySloty;
+    RectTransform devPanel;
+    int skinKurzor;
+    string skinKod = "";
     Image jumpscareStin;
     RawImage nahledImg;
 
-    public Color BarvaAktivni => PieceShapes.All[tvar].barva;
+    public Color BarvaAktivni => KostkaSkin.ColorOf(tvar);
 
     void Awake()
     {
@@ -90,6 +95,8 @@ public class GameManager : MonoBehaviour
         pavoukVideoZvuk = Resources.Load<AudioClip>("PavoukVideoZvuk");
         KostkaVisual.SetTemplates(litTemplate, unlitTemplate);
         KostkaVisual.Init();
+        KostkaSkin.LoadFromPrefsAndArgs(CmdArgs.Get());
+        if (GetComponent<KostkaSkinHub>() == null) gameObject.AddComponent<KostkaSkinHub>();
         ZajistiPisma();
     }
 
@@ -100,6 +107,7 @@ public class GameManager : MonoBehaviour
         if (CameraOrbit.I != null) CameraOrbit.I.autoOrbit = true;
         PostavDekoraci();
         ObnovHud();
+        if (CmdArgs.Has("-openskins")) OpenSkinMenu();
     }
 
     void ZajistiPisma()
@@ -122,10 +130,19 @@ public class GameManager : MonoBehaviour
 
     void Update()
     {
+        if (stav == Stav.Skiny)
+        {
+            SkinMenuInput();
+            return;
+        }
+
         if (Input.GetKeyDown(KeyCode.J))
             PrepnoutJumpscare();
         if (Input.GetKeyDown(KeyCode.K))
-            PrepnoutStyl();
+        {
+            if (stav == Stav.Titulka) OpenSkinMenu();
+            else PrepnoutStyl();
+        }
 
         if (Input.GetKeyDown(KeyCode.P) && (stav == Stav.Hra || stav == Stav.Pauza))
             PrepnoutPauzu();
@@ -178,13 +195,7 @@ public class GameManager : MonoBehaviour
     void NakresliAktivniPlynule()
     {
         if (aktivni == null || lokal == null) return;
-        aktivni.Set(puvod, lokal, BarvaAktivni, false);
-        // posun out-of-grid interpolace: přepiš pozice
-        var root = aktivni.root;
-        int n = Mathf.Min(root.childCount, lokal.Length);
-        Vector3 d = vizPuvod - (Vector3)puvod;
-        for (int i = 0; i < n; i++)
-            root.GetChild(i).position = KostkaVisual.World(puvod + lokal[i]) + new Vector3(d.x, d.y, d.z);
+        aktivni.SetSmooth(vizPuvod, lokal, BarvaAktivni, false, tvar);
         AktualizujDucha();
     }
 
@@ -209,6 +220,7 @@ public class GameManager : MonoBehaviour
         if (predplnit) PredplnDemo();
         stav = Stav.Hra;
         if (titulka != null) titulka.gameObject.SetActive(false);
+        if (skinyPanel != null) skinyPanel.gameObject.SetActive(false);
         if (hud != null) hud.gameObject.SetActive(true);
         if (pauzaPanel != null) pauzaPanel.gameObject.SetActive(false);
         if (konecPanel != null) konecPanel.gameObject.SetActive(false);
@@ -267,7 +279,7 @@ public class GameManager : MonoBehaviour
         }
         if (aktivni == null) aktivni = new PieceView("Aktivni", svet, false);
         if (duch == null) duch = new PieceView("Duch", svet, true);
-        aktivni.Set(puvod, lokal, BarvaAktivni, false);
+        aktivni.Set(puvod, lokal, BarvaAktivni, false, tvar);
         AktualizujDucha();
         AktualizujNahled();
     }
@@ -277,7 +289,7 @@ public class GameManager : MonoBehaviour
         if (duch == null || lokal == null) return;
         var g = puvod;
         while (board.CanPlace(g + Vector3Int.down, lokal)) g += Vector3Int.down;
-        duch.Set(g, lokal, BarvaAktivni, true);
+        duch.Set(g, lokal, BarvaAktivni, true, tvar);
         // když je duch na stejném místě jako kus, trochu ho schovej
         bool same = g == puvod;
         if (same) duch.Hide();
@@ -290,7 +302,7 @@ public class GameManager : MonoBehaviour
         var n = puvod + d;
         if (!board.CanPlace(n, lokal)) return false;
         puvod = n;
-        if (aktivni != null) aktivni.Set(puvod, lokal, BarvaAktivni, false);
+        if (aktivni != null) aktivni.Set(puvod, lokal, BarvaAktivni, false, tvar);
         AktualizujDucha();
         return true;
     }
@@ -316,7 +328,7 @@ public class GameManager : MonoBehaviour
                 lokal = rot;
                 puvod = o;
                 vizPuvod = puvod;
-                if (aktivni != null) aktivni.Set(puvod, lokal, BarvaAktivni, false);
+                if (aktivni != null) aktivni.Set(puvod, lokal, BarvaAktivni, false, tvar);
                 AktualizujDucha();
                 return true;
             }
@@ -343,7 +355,7 @@ public class GameManager : MonoBehaviour
         {
             var p = puvod + lokal[i];
             if (!board.InBounds(p)) continue;
-            var go = KostkaVisual.MakeCube(leziciRoot, KostkaVisual.World(p), KostkaVisual.Lit(BarvaAktivni), "Bunka");
+            var go = NovaBunka(leziciRoot, p, tvar, "Bunka");
             lezici[p] = go.transform;
             nove.Add(go.transform);
         }
@@ -561,6 +573,30 @@ public class GameManager : MonoBehaviour
 
     IEnumerator Jumpscare()
     {
+        string content = KostkaSkin.JumpOfCurrent();
+        if (content == "miku" && canvas != null)
+        {
+            var tex = KostkaSkin.FaceTex("SkinFaces/MikuFace");
+            if (tex != null)
+            {
+                yield return JumpscarePavouk.HrajObrazek(canvas, tex, KostkaSkin.JumpscareClip("miku"));
+                yield break;
+            }
+        }
+        if (content == "astolfo" && canvas != null)
+        {
+            var tex = KostkaSkin.FaceTex("SkinFaces/AstolfoFace");
+            if (tex != null)
+            {
+                yield return JumpscarePavouk.HrajObrazek(canvas, tex, KostkaSkin.JumpscareClip("astolfo"));
+                yield break;
+            }
+        }
+        if (content == "67" && canvas != null)
+        {
+            yield return JumpscarePavouk.Hraj67(canvas, KostkaSkin.JumpscareClip("67"));
+            yield break;
+        }
         if (jumpscareStyl == StylVideo && pavoukVideo != null && pavoukVideo.Length > 0 && canvas != null)
             yield return JumpscarePavouk.HrajVideo(canvas, pavoukVideo, pavoukVideoZvuk, 20f);
         else if (jumpscareStyl == StylAnim && pavoukAnim != null && pavoukAnim.Length > 0 && canvas != null)
@@ -684,7 +720,7 @@ public class GameManager : MonoBehaviour
             int sid = rng.Next(PieceShapes.All.Length);
             var p = new Vector3Int(x, y, z);
             board.Set(p, sid + 1);
-            var go = KostkaVisual.MakeCube(leziciRoot, KostkaVisual.World(p), KostkaVisual.Lit(PieceShapes.All[sid].barva), "Demo");
+            var go = NovaBunka(leziciRoot, p, sid, "Demo");
             lezici[p] = go.transform;
         }
         foreach (var r in board.NajdiPlneRadky())
@@ -707,7 +743,7 @@ public class GameManager : MonoBehaviour
             if (x == 3 || z == 3) continue;
             if (rng.NextDouble() > 0.55) continue;
             int sid = (x * 3 + z * 5 + y) % PieceShapes.All.Length;
-            var go = KostkaVisual.MakeCube(dekorRoot, KostkaVisual.World(new Vector3Int(x, y, z)), KostkaVisual.Lit(PieceShapes.All[sid].barva), "Dekor");
+            var go = NovaBunka(dekorRoot, new Vector3Int(x, y, z), sid, "Dekor");
             dekor.Add(go);
         }
     }
@@ -869,7 +905,7 @@ public class GameManager : MonoBehaviour
     {
         if (nahled == null) return;
         var def = PieceShapes.All[dalsiTvar];
-        nahled.SetLocal(def.bunky, def.barva);
+        nahled.SetLocal(def.bunky, KostkaSkin.ColorOf(dalsiTvar), dalsiTvar);
         nahled.root.localPosition = Vector3.zero;
         nahled.root.localRotation = Quaternion.Euler(18f, 28f, 0f);
         int layer = LayerMask.NameToLayer("Nahled");
@@ -883,6 +919,239 @@ public class GameManager : MonoBehaviour
         }
     }
 
+
+    GameObject NovaBunka(Transform parent, Vector3Int p, int sid, string name)
+    {
+        var go = KostkaVisual.MakeCube(parent, KostkaVisual.World(p), KostkaSkin.Material(sid, false), name);
+        var b = go.AddComponent<KostkaBunka>();
+        b.tvar = sid;
+        b.ghost = false;
+        return go;
+    }
+
+    public void ObnovFigury()
+    {
+        KostkaSkin.RefreshRenderers();
+        if (aktivni != null && lokal != null && stav != Stav.Titulka && stav != Stav.Skiny)
+            aktivni.SetSmooth(vizPuvod, lokal, BarvaAktivni, false, tvar);
+        if (duch != null && lokal != null && stav != Stav.Titulka && stav != Stav.Skiny)
+            AktualizujDucha();
+        if (nahled != null && stav == Stav.Hra) AktualizujNahled();
+        // dekor na titulce
+        if (stav == Stav.Titulka || stav == Stav.Skiny)
+        {
+            foreach (var go in dekor)
+            {
+                if (go == null) continue;
+                var b = go.GetComponent<KostkaBunka>();
+                var mr = go.GetComponent<MeshRenderer>();
+                if (b != null && mr != null) mr.sharedMaterial = KostkaSkin.Material(b.tvar, false);
+            }
+        }
+    }
+
+    public void DemoNavratNaTitulku()
+    {
+        StopAllCoroutines();
+        busy = false;
+        Time.timeScale = 1f;
+        SmazLezici();
+        board.Reset();
+        if (aktivni != null) aktivni.Hide();
+        if (duch != null) duch.Hide();
+        if (hud != null) hud.gameObject.SetActive(false);
+        if (konecPanel != null) konecPanel.gameObject.SetActive(false);
+        if (pauzaPanel != null) pauzaPanel.gameObject.SetActive(false);
+        if (skinyPanel != null) skinyPanel.gameObject.SetActive(false);
+        stav = Stav.Titulka;
+        if (titulka != null) titulka.gameObject.SetActive(true);
+        if (CameraOrbit.I != null) CameraOrbit.I.autoOrbit = true;
+        PostavDekoraci();
+        ObnovHud();
+    }
+
+    public void OpenSkinMenu()
+    {
+        if (stav != Stav.Titulka && stav != Stav.Skiny) return;
+        stav = Stav.Skiny;
+        skinKurzor = KostkaSkin.IndexOf(KostkaSkin.Current().id);
+        skinKod = "";
+        if (titulka != null) titulka.gameObject.SetActive(false);
+        if (skinyPanel != null) skinyPanel.gameObject.SetActive(true);
+        RefreshSkinMenu("Šipky nebo klik = výběr, Enter = zvolit, Esc = zpět");
+    }
+
+    public void CloseSkinMenu()
+    {
+        if (stav != Stav.Skiny) return;
+        stav = Stav.Titulka;
+        if (skinyPanel != null) skinyPanel.gameObject.SetActive(false);
+        if (titulka != null) titulka.gameObject.SetActive(true);
+        ObnovFigury();
+    }
+
+    public bool TryUnlockCode(string code)
+    {
+        skinKod = code ?? "";
+        return SubmitSkinCode();
+    }
+
+    public bool SubmitSkinCode()
+    {
+        string typed = (skinKod ?? "").Trim();
+        if (string.Equals(typed, "DEV", System.StringComparison.OrdinalIgnoreCase))
+        {
+            KostkaSkin.UnlockDev();
+            skinKod = "";
+            RefreshSkinMenu("Odemčen panel DEV / modifikace");
+            return true;
+        }
+        var unlocked = KostkaSkin.UnlockWithCode(skinKod);
+        if (unlocked == null)
+        {
+            RefreshSkinMenu("Neplatný kód");
+            return false;
+        }
+        KostkaSkin.Select(unlocked.id);
+        skinKurzor = KostkaSkin.IndexOf(unlocked.id);
+        skinKod = "";
+        ObnovFigury();
+        RefreshSkinMenu("Odemčeno: " + unlocked.displayName + "!");
+        return true;
+    }
+
+    public bool SelectSkinId(string id)
+    {
+        bool ok = KostkaSkin.Select(id);
+        if (ok)
+        {
+            skinKurzor = KostkaSkin.IndexOf(id);
+            ObnovFigury();
+        }
+        return ok;
+    }
+
+    // Pro screenshoty: nastaví aktuální tvar (třeba T / Miku T-póza).
+    public void DemoNastavTvar(int index)
+    {
+        if (PieceShapes.All.Length == 0) return;
+        tvar = ((index % PieceShapes.All.Length) + PieceShapes.All.Length) % PieceShapes.All.Length;
+        lokal = PieceShapes.Copy(PieceShapes.All[tvar].bunky);
+        int maxY = 0;
+        for (int i = 0; i < lokal.Length; i++) if (lokal[i].y > maxY) maxY = lokal[i].y;
+        puvod = new Vector3Int(Board.W / 2, 5, Board.D / 2);
+        if (!board.CanPlace(puvod, lokal))
+            puvod = new Vector3Int(Board.W / 2, 8, Board.D / 2);
+        vizPuvod = puvod;
+        busy = true; // ať figurka při screenshotu nespadne
+        padani = 0f;
+        if (aktivni == null) aktivni = new PieceView("Aktivni", svet, false);
+        if (duch == null) duch = new PieceView("Duch", svet, true);
+        aktivni.Set(puvod, lokal, BarvaAktivni, false, tvar);
+        AktualizujDucha();
+        AktualizujNahled();
+    }
+
+    void SkinMenuInput()
+    {
+        if (Input.GetKeyDown(KeyCode.Escape)) { CloseSkinMenu(); return; }
+        int n = KostkaSkin.All.Length;
+        if (Input.GetKeyDown(KeyCode.LeftArrow) || Input.GetKeyDown(KeyCode.A))
+        { skinKurzor = (skinKurzor + n - 1) % n; RefreshSkinMenu(); }
+        if (Input.GetKeyDown(KeyCode.RightArrow) || Input.GetKeyDown(KeyCode.D))
+        { skinKurzor = (skinKurzor + 1) % n; RefreshSkinMenu(); }
+        if (Input.GetKeyDown(KeyCode.UpArrow) || Input.GetKeyDown(KeyCode.W))
+        { skinKurzor = (skinKurzor + n - 4) % n; RefreshSkinMenu(); }
+        if (Input.GetKeyDown(KeyCode.DownArrow) || Input.GetKeyDown(KeyCode.S))
+        { skinKurzor = (skinKurzor + 4) % n; RefreshSkinMenu(); }
+        foreach (char c in Input.inputString)
+        {
+            if (c == '\b') { if (skinKod.Length > 0) skinKod = skinKod.Substring(0, skinKod.Length - 1); }
+            else if (c == '\n' || c == '\r')
+            {
+                if (skinKod.Length > 0) SubmitSkinCode();
+                else TrySelectHighlighted();
+                return;
+            }
+            else if (!char.IsControl(c) && skinKod.Length < 16) skinKod += c;
+            RefreshSkinMenu();
+        }
+    }
+
+    void TrySelectHighlighted()
+    {
+        var s = KostkaSkin.All[Mathf.Clamp(skinKurzor, 0, KostkaSkin.All.Length - 1)];
+        if (!KostkaSkin.IsUnlocked(s))
+        {
+            RefreshSkinMenu("Tenhle skin je zamčený – zadej tajný kód");
+            return;
+        }
+        KostkaSkin.Select(s.id);
+        ObnovFigury();
+        RefreshSkinMenu("Vybráno: " + s.displayName);
+    }
+
+    void RefreshSkinMenu(string hint = null)
+    {
+        if (txtSkinyKod != null)
+            txtSkinyKod.text = "Tajný kód: " + (string.IsNullOrEmpty(skinKod) ? "_" : skinKod + "_");
+        if (txtSkinyHint != null && hint != null) txtSkinyHint.text = hint;
+        if (skinySloty == null) return;
+        var cur = KostkaSkin.Current();
+        for (int i = 0; i < skinySloty.childCount && i < KostkaSkin.All.Length; i++)
+        {
+            var s = KostkaSkin.All[i];
+            bool unlocked = KostkaSkin.IsUnlocked(s);
+            bool on = i == skinKurzor;
+            bool used = cur != null && cur.id == s.id;
+            var slot = skinySloty.GetChild(i);
+            var img = slot.GetComponent<Image>();
+            var label = slot.GetComponentInChildren<TextMeshProUGUI>();
+            Color baseC = unlocked ? s.swatch : new Color(0.75f, 0.70f, 0.66f);
+            if (img)
+            {
+                Color bg = on ? Color.Lerp(baseC, Color.white, 0.35f) : Color.Lerp(baseC, new Color(1f, 0.97f, 0.94f), 0.55f);
+                if (!unlocked) bg = new Color(0.80f, 0.76f, 0.72f, 0.95f);
+                img.color = bg;
+            }
+            if (label)
+            {
+                string name = unlocked ? s.displayName : "???";
+                if (!unlocked) name += "\n<size=70%>zámek</size>";
+                else if (used) name += "\n<size=70%>VYBRÁNO</size>";
+                label.text = name;
+                label.color = unlocked ? new Color(0.32f, 0.20f, 0.16f) : new Color(0.45f, 0.38f, 0.34f);
+            }
+        }
+        if (devPanel != null)
+        {
+            devPanel.gameObject.SetActive(KostkaSkin.DevUnlocked);
+            if (KostkaSkin.DevUnlocked)
+            {
+                string sid = cur != null ? cur.id : "pastel";
+                string sfx = KostkaSkin.SfxOf(sid);
+                string jmp = KostkaSkin.JumpOf(sid);
+                for (int i = 0; i < devPanel.childCount; i++)
+                {
+                    var ch = devPanel.GetChild(i);
+                    var img = ch.GetComponent<Image>();
+                    if (img == null) continue;
+                    if (ch.name.StartsWith("DevSfx_"))
+                    {
+                        bool on = ch.name == "DevSfx_" + sfx;
+                        img.color = on ? new Color(0.90f, 0.48f, 0.36f) : new Color(0.92f, 0.78f, 0.70f);
+                    }
+                    if (ch.name.StartsWith("DevJump_"))
+                    {
+                        bool on = ch.name == "DevJump_" + jmp;
+                        img.color = on ? new Color(0.90f, 0.48f, 0.36f) : new Color(0.92f, 0.78f, 0.70f);
+                    }
+                }
+            }
+        }
+    }
+
+    // ---------- UI ----------
     // ---------- UI ----------
     void PostavUi()
     {
@@ -905,20 +1174,21 @@ public class GameManager : MonoBehaviour
         // TITULKA
         titulka = Panel("Titulka", canvGo.transform, Vector2.zero, new Vector2(1920, 1080), new Color(0.95f, 0.86f, 0.78f, 0.28f), null);
         Stretch(titulka);
-        var karta = Panel("Karta", titulka, Vector2.zero, new Vector2(760, 780), cream, dimSprite);
-        Txt("Nazev", karta, new Vector2(0, 250), new Vector2(700, 160), "KOSTKA", 128, fontTitle, ink, FontStyles.Bold, TextAlignmentOptions.Center);
-        Txt("Podtitul", karta, new Vector2(0, 145), new Vector2(700, 50), "3D skládačka", 36, fontUi, new Color(0.55f, 0.38f, 0.32f), FontStyles.Normal, TextAlignmentOptions.Center);
-        txtTitulRekord = Txt("Rekord", karta, new Vector2(0, 90), new Vector2(700, 40), "Rekord: " + rekord, 28, fontUi, new Color(0.50f, 0.35f, 0.28f), FontStyles.Normal, TextAlignmentOptions.Center);
+        var karta = Panel("Karta", titulka, Vector2.zero, new Vector2(760, 840), cream, dimSprite);
+        Txt("Nazev", karta, new Vector2(0, 290), new Vector2(700, 140), "KOSTKA", 120, fontTitle, ink, FontStyles.Bold, TextAlignmentOptions.Center);
+        Txt("Podtitul", karta, new Vector2(0, 195), new Vector2(700, 40), "3D skládačka", 34, fontUi, new Color(0.55f, 0.38f, 0.32f), FontStyles.Normal, TextAlignmentOptions.Center);
+        txtTitulRekord = Txt("Rekord", karta, new Vector2(0, 145), new Vector2(700, 36), "Rekord: " + rekord, 28, fontUi, new Color(0.50f, 0.35f, 0.28f), FontStyles.Normal, TextAlignmentOptions.Center);
 
-        var btnHrat = Tlacitko("Hrat", karta, new Vector2(0, 10), new Vector2(280, 80), "HRÁT", coral, Color.white, 44, () => StartGame(false));
+        var btnHrat = Tlacitko("Hrat", karta, new Vector2(0, 60), new Vector2(280, 74), "HRÁT", coral, Color.white, 42, () => StartGame(false));
+        Tlacitko("Skiny", karta, new Vector2(0, -30), new Vector2(280, 70), "SKINY", new Color(0.92f, 0.62f, 0.50f), Color.white, 36, OpenSkinMenu);
 
-        Txt("Ovl", karta, new Vector2(0, -210), new Vector2(700, 320),
+        Txt("Ovl", karta, new Vector2(0, -230), new Vector2(700, 300),
             "Pohyb        WASD   ·   Otočení   Q / E\n" +
             "Překlopit    Shift + WASD\n" +
             "Pád          Mezerník   ·   Kamera  1 / 2  nebo myš\n" +
             "Pauza        P\n" +
             "Cíl: skládej řady 7 kostek vedle sebe.",
-            24, fontUi, new Color(0.42f, 0.30f, 0.26f), FontStyles.Normal, TextAlignmentOptions.Center);
+            22, fontUi, new Color(0.42f, 0.30f, 0.26f), FontStyles.Normal, TextAlignmentOptions.Center);
 
         // HUD
         hud = Panel("HUD", canvGo.transform, Vector2.zero, new Vector2(1920, 1080), Color.clear, null);
@@ -957,6 +1227,69 @@ public class GameManager : MonoBehaviour
 
         txtNapis = Txt("Napis", canvGo.transform, new Vector2(0, 280), new Vector2(900, 80), "", 48, fontTitle, ink, FontStyles.Bold, TextAlignmentOptions.Center);
         txtNapis.gameObject.SetActive(false);
+
+        // SKINY
+        skinyPanel = Panel("Skiny", canvGo.transform, Vector2.zero, new Vector2(1920, 1080), new Color(0.95f, 0.86f, 0.78f, 0.40f), null);
+        Stretch(skinyPanel);
+        skinyPanel.gameObject.SetActive(false);
+        var skKarta = Panel("SkinyKarta", skinyPanel, Vector2.zero, new Vector2(1180, 1000), cream, dimSprite);
+        Txt("SkinyT", skKarta, new Vector2(0, 450), new Vector2(1100, 60), "SKINY", 56, fontTitle, ink, FontStyles.Bold, TextAlignmentOptions.Center);
+        var slotGo = new GameObject("Sloty", typeof(RectTransform));
+        skinySloty = slotGo.transform;
+        skinySloty.SetParent(skKarta, false);
+        var slotRt = slotGo.GetComponent<RectTransform>();
+        slotRt.anchoredPosition = new Vector2(0, 160);
+        slotRt.sizeDelta = new Vector2(1100, 430);
+        float sw = 200f, sh = 108f, gapx = 16f, gapy = 16f;
+        int cols = 4;
+        for (int i = 0; i < KostkaSkin.All.Length; i++)
+        {
+            int idx = i;
+            var s = KostkaSkin.All[i];
+            int col = i % cols;
+            int row = i / cols;
+            float x = (col - (cols - 1) * 0.5f) * (sw + gapx);
+            float y = 140f - row * (sh + gapy);
+            Tlacitko("Slot_" + s.id, skinySloty, new Vector2(x, y), new Vector2(sw, sh), s.displayName, s.swatch, ink, 24, () =>
+            {
+                skinKurzor = idx;
+                if (KostkaSkin.IsUnlocked(s)) TrySelectHighlighted();
+                else RefreshSkinMenu("Tenhle skin je zamčený – zadej tajný kód");
+            });
+        }
+        txtSkinyKod = Txt("Kod", skKarta, new Vector2(0, -90), new Vector2(900, 36), "Tajný kód: _", 26, fontUi, ink, FontStyles.Normal, TextAlignmentOptions.Center);
+        txtSkinyHint = Txt("Hint", skKarta, new Vector2(0, -128), new Vector2(1100, 40), "Šipky nebo klik = výběr, Enter = zvolit, Esc = zpět", 20, fontUi, new Color(0.50f, 0.35f, 0.28f), FontStyles.Normal, TextAlignmentOptions.Center);
+
+        devPanel = Panel("DevPanel", skKarta, new Vector2(0, -265), new Vector2(1080, 200), new Color(0.98f, 0.92f, 0.86f, 0.98f), dimSprite);
+        Txt("DevT", devPanel, new Vector2(0, 78), new Vector2(1000, 32), "DEV / modifikace  (vybraný skin)", 22, fontUi, ink, FontStyles.Bold, TextAlignmentOptions.Center);
+        Txt("DevSfxL", devPanel, new Vector2(-430, 36), new Vector2(180, 28), "Zvuk řady:", 18, fontUi, ink, FontStyles.Normal, TextAlignmentOptions.Right);
+        Txt("DevJumpL", devPanel, new Vector2(-430, -28), new Vector2(180, 28), "Jumpscare:", 18, fontUi, ink, FontStyles.Normal, TextAlignmentOptions.Right);
+        for (int i = 0; i < KostkaSkin.SfxIds.Length; i++)
+        {
+            int ii = i;
+            string id = KostkaSkin.SfxIds[i];
+            Tlacitko("DevSfx_" + id, devPanel, new Vector2(-180 + i * 165, 32), new Vector2(150, 44), KostkaSkin.SfxLabels[i], new Color(0.92f, 0.78f, 0.70f), ink, 20, () =>
+            {
+                var cur = KostkaSkin.Current();
+                if (cur != null) KostkaSkin.SetSfx(cur.id, KostkaSkin.SfxIds[ii]);
+                RefreshSkinMenu("Zvuk řady uložen");
+            });
+        }
+        for (int i = 0; i < KostkaSkin.JumpIds.Length; i++)
+        {
+            int ii = i;
+            string id = KostkaSkin.JumpIds[i];
+            Tlacitko("DevJump_" + id, devPanel, new Vector2(-180 + i * 165, -32), new Vector2(150, 44), KostkaSkin.JumpLabels[i], new Color(0.92f, 0.78f, 0.70f), ink, 20, () =>
+            {
+                var cur = KostkaSkin.Current();
+                if (cur != null) KostkaSkin.SetJump(cur.id, KostkaSkin.JumpIds[ii]);
+                RefreshSkinMenu("Jumpscare uložen");
+            });
+        }
+        devPanel.gameObject.SetActive(false);
+
+        Tlacitko("Zpet", skKarta, new Vector2(0, -430), new Vector2(240, 60), "ZPĚT", coral, Color.white, 30, CloseSkinMenu);
+        RefreshSkinMenu();
 
         // PAUZA
         pauzaPanel = Panel("Pauza", canvGo.transform, Vector2.zero, new Vector2(1920, 1080), new Color(0.95f, 0.88f, 0.80f, 0.45f), null);

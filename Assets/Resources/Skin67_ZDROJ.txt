@@ -1,0 +1,9 @@
+Zdroj animace „67“ pro tajný skin kostek:
+
+Vlastní animace vyrobená pro školní hru KOSTKA (poskakující nápis „6 7“
+a jednoduchá mávající ruka, vykreslená v kódu po snímcích).
+
+Nepoužívá se žádný stažený meme GIF ani cizí obrázek – volně použitelný
+zdroj s jasnou licencí jsme nenašli, proto je textura původní.
+
+Soubory: generuje se za běhu v KostkaSkin.Build67Frames (žádný binární asset).

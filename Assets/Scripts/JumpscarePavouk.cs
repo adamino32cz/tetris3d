@@ -561,4 +561,117 @@ public class JumpscarePavouk : MonoBehaviour
     }
 
 
+
+    // Jumpscare z panelu DEV: portrét (Miku / Astolfo) přes ztmavenou hru.
+    public static IEnumerator HrajObrazek(Canvas canvas, Texture2D foto, AudioClip zvuk, float trvani = 1.15f)
+    {
+        if (canvas == null || foto == null) yield break;
+        if (zvuk != null && SoundFX.I != null) SoundFX.I.PlayClip(zvuk, 1f);
+        else if (SoundFX.I != null) SoundFX.I.ScreamSilny();
+        if (CameraOrbit.I != null) CameraOrbit.I.shake = 0.7f;
+
+        var root = new GameObject("JumpscareObrazek");
+        root.transform.SetParent(canvas.transform, false);
+        root.transform.SetAsLastSibling();
+        var rootRt = root.AddComponent<RectTransform>();
+        rootRt.anchorMin = Vector2.zero; rootRt.anchorMax = Vector2.one;
+        rootRt.offsetMin = Vector2.zero; rootRt.offsetMax = Vector2.zero;
+
+        var dimGo = new GameObject("Dim");
+        dimGo.transform.SetParent(root.transform, false);
+        var dim = dimGo.AddComponent<Image>();
+        dim.color = new Color(0.05f, 0.01f, 0.05f, 0.72f);
+        var drt = dim.rectTransform;
+        drt.anchorMin = Vector2.zero; drt.anchorMax = Vector2.one;
+        drt.offsetMin = Vector2.zero; drt.offsetMax = Vector2.zero;
+
+        var fotoGo = new GameObject("Foto");
+        fotoGo.transform.SetParent(root.transform, false);
+        var raw = fotoGo.AddComponent<RawImage>();
+        raw.texture = foto;
+        raw.color = Color.white;
+        var prt = raw.rectTransform;
+        prt.anchorMin = prt.anchorMax = new Vector2(0.5f, 0.5f);
+        var canvRt = canvas.GetComponent<RectTransform>();
+        float h = (canvRt != null && canvRt.rect.height > 1f) ? canvRt.rect.height : 1080f;
+        float aspect = (float)foto.width / Mathf.Max(1, foto.height);
+        prt.sizeDelta = new Vector2(h * aspect, h);
+
+        float t = 0f;
+        while (t < trvani)
+        {
+            t += Time.unscaledDeltaTime;
+            float k = Mathf.Clamp01(t / trvani);
+            float scale = k < 0.18f ? Mathf.Lerp(0.55f, 1.25f, k / 0.18f) : Mathf.Lerp(1.25f, 1.05f, (k - 0.18f) / 0.82f);
+            prt.localScale = Vector3.one * scale;
+            prt.anchoredPosition = new Vector2(Mathf.Sin(t * 47f) * 16f, Mathf.Cos(t * 39f) * 12f);
+            if (k > 0.75f)
+            {
+                float f = (k - 0.75f) / 0.25f;
+                raw.color = new Color(1f, 1f, 1f, 1f - f);
+                dim.color = new Color(0.05f, 0.01f, 0.05f, 0.72f * (1f - f));
+            }
+            yield return null;
+        }
+        if (CameraOrbit.I != null) CameraOrbit.I.shake = 0f;
+        Object.Destroy(root);
+    }
+
+    // Jumpscare 67: animované snímky přes obrazovku.
+    public static IEnumerator Hraj67(Canvas canvas, AudioClip zvuk, float trvani = 1.2f)
+    {
+        var frames = KostkaSkin.Build67Frames(12, 256);
+        if (frames == null || frames.Length == 0) yield break;
+        if (zvuk != null && SoundFX.I != null) SoundFX.I.PlayClip(zvuk, 1f);
+        else if (SoundFX.I != null) SoundFX.I.Scream();
+        if (CameraOrbit.I != null) CameraOrbit.I.shake = 0.75f;
+
+        var root = new GameObject("Jumpscare67");
+        root.transform.SetParent(canvas.transform, false);
+        root.transform.SetAsLastSibling();
+        var rootRt = root.AddComponent<RectTransform>();
+        rootRt.anchorMin = Vector2.zero; rootRt.anchorMax = Vector2.one;
+        rootRt.offsetMin = Vector2.zero; rootRt.offsetMax = Vector2.zero;
+
+        var dimGo = new GameObject("Dim");
+        dimGo.transform.SetParent(root.transform, false);
+        var dim = dimGo.AddComponent<Image>();
+        dim.color = new Color(0.08f, 0.02f, 0.12f, 0.8f);
+        var drt = dim.rectTransform;
+        drt.anchorMin = Vector2.zero; drt.anchorMax = Vector2.one;
+        drt.offsetMin = Vector2.zero; drt.offsetMax = Vector2.zero;
+
+        var fotoGo = new GameObject("Anim");
+        fotoGo.transform.SetParent(root.transform, false);
+        var raw = fotoGo.AddComponent<RawImage>();
+        raw.texture = frames[0];
+        var prt = raw.rectTransform;
+        prt.anchorMin = prt.anchorMax = new Vector2(0.5f, 0.5f);
+        var canvRt = canvas.GetComponent<RectTransform>();
+        float h = (canvRt != null && canvRt.rect.height > 1f) ? canvRt.rect.height : 1080f;
+        prt.sizeDelta = new Vector2(h * 1.15f, h * 1.15f);
+
+        float t = 0f;
+        int last = -1;
+        while (t < trvani)
+        {
+            t += Time.unscaledDeltaTime;
+            int idx = Mathf.Clamp((int)(t * 12f) % frames.Length, 0, frames.Length - 1);
+            if (idx != last) { raw.texture = frames[idx]; last = idx; }
+            float k = Mathf.Clamp01(t / trvani);
+            prt.localScale = Vector3.one * (0.85f + k * 0.45f);
+            prt.anchoredPosition = new Vector2(Mathf.Sin(t * 55f) * 18f, Mathf.Cos(t * 41f) * 14f);
+            if (k > 0.8f)
+            {
+                float f = (k - 0.8f) / 0.2f;
+                raw.color = new Color(1f, 1f, 1f, 1f - f);
+                dim.color = new Color(0.08f, 0.02f, 0.12f, 0.8f * (1f - f));
+            }
+            yield return null;
+        }
+        if (CameraOrbit.I != null) CameraOrbit.I.shake = 0f;
+        Object.Destroy(root);
+    }
+
+
 }

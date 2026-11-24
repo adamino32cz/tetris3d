@@ -16,6 +16,11 @@ public static class KostkaVisual
 
     public static Vector3 World(Vector3Int g)
     {
+        return World((Vector3)g);
+    }
+
+    public static Vector3 World(Vector3 g)
+    {
         return new Vector3(g.x - 3f, g.y + 0.5f, g.z - 3f);
     }
 

@@ -19,7 +19,11 @@ public class SoundFX : MonoBehaviour
     public void Rotate() => Play(740f, 0.05f, 0.22f, 0.5f);
     public void Lock() => Play(280f, 0.09f, 0.28f, 0.7f);
     public void Drop() => Play(180f, 0.12f, 0.35f, 0.9f);
-    public void Clear() => Chord(new[] { 523f, 659f, 784f }, 0.16f, 0.35f);
+    public void Clear()
+    {
+        if (KostkaSkin.TryPlayClearOverride()) return;
+        Chord(new[] { 523f, 659f, 784f }, 0.16f, 0.35f);
+    }
     public void Over() => Chord(new[] { 330f, 247f, 196f }, 0.28f, 0.4f);
     public void StartGame() => Chord(new[] { 392f, 523f, 659f }, 0.12f, 0.3f);
 

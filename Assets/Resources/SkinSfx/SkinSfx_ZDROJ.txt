@@ -1,0 +1,15 @@
+Zdroje zvuků pro panel DEV / modifikace (zvuk při smazání řady):
+
+- meow.ogg — „Little Meow of a Cat #1“ (zvuk č. 494)
+  Autor: Joseph Sardin / BigSoundBank (La Sonothèque)
+  https://bigsoundbank.com/little-meow-of-a-cat-s0494.html
+  Licence: CC0 (public domain)
+
+- yamete.ogg — krátká neexplicitní fráze „yamete kudasai“ (やめてください, „prosím přestaň“).
+  Vyrobeno pro školní hru KOSTKA syntézou espeak-ng (hlas ja, zvýšená výška),
+  bez cizího anime klipu.
+
+- sfx67.ogg — meme hláška „six / seven“.
+  Vyrobeno pro školní hru KOSTKA syntézou espeak-ng (en-us), bez cizího sample.
+
+Výchozí zvuk smazání řady (akord) zůstává procedurální v SoundFX.Clear().
