@@ -319,6 +319,7 @@ public static class KostkaSkin
         if (id == "default") return false;
         var clip = ClipForSfx(id);
         if (clip == null || SoundFX.I == null) return false;
+        // Yamete (a ostatní DEV SFX) naplno — hlasitost je v samotném klipu.
         SoundFX.I.PlayClip(clip, 1f);
         return true;
     }

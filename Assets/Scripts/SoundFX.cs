@@ -32,7 +32,7 @@ public class SoundFX : MonoBehaviour
     {
         if (src == null || clip == null) return;
         src.volume = 1f;
-        src.PlayOneShot(clip, vol);
+        src.PlayOneShot(clip, vol <= 0f ? 1f : vol);
     }
 
     public void Scream()
