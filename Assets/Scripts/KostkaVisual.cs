@@ -80,6 +80,43 @@ public static class KostkaVisual
         return m;
     }
 
+    public static Material LitTextured(Texture tex, Color tint, bool cutout = false)
+    {
+        Init();
+        var m = NewFrom(litTemplate);
+        ApplyLit(m, tint, 0.22f, false, 1f);
+        ApplyTexture(m, tex);
+        if (cutout) MakeCutout(m, 0.35f);
+        return m;
+    }
+
+    public static Material UnlitTextured(Texture tex, Color tint, bool cutout = false)
+    {
+        Init();
+        var m = NewFrom(unlitTemplate);
+        SetColor(m, tint);
+        ApplyTexture(m, tex);
+        if (cutout) MakeCutout(m, 0.35f);
+        return m;
+    }
+
+    static void ApplyTexture(Material m, Texture tex)
+    {
+        if (tex == null) return;
+        if (m.HasProperty("_BaseMap")) m.SetTexture("_BaseMap", tex);
+        if (m.HasProperty("_MainTex")) m.SetTexture("_MainTex", tex);
+    }
+
+    static void MakeCutout(Material m, float cutoff)
+    {
+        if (m.HasProperty("_AlphaClip")) m.SetFloat("_AlphaClip", 1f);
+        if (m.HasProperty("_Cutoff")) m.SetFloat("_Cutoff", cutoff);
+        if (m.HasProperty("_Cull")) m.SetFloat("_Cull", 0f);
+        m.EnableKeyword("_ALPHATEST_ON");
+        m.SetOverrideTag("RenderType", "TransparentCutout");
+        m.renderQueue = 2450;
+    }
+
     public static Material Ghost(Color c)
     {
         Init();

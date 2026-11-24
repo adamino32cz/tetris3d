@@ -9,6 +9,7 @@ using UnityEngine;
 //   -demo           start s předvyplněnou šachtou
 //   -jumpscare      vynutí jumpscare aktuálního stylu
 //   -skinshots      uloží snímky menu a skinů (skins_*.png)
+//   -fixshots       snímky opravy EXTRA/Astolfo (fix_*.png)
 //   -openskins      otevře menu SKINY
 //   -skin <id>      vybere vzhled (pastel/neon/mono/candy/ocean/forest/67/miku)
 public class AutoDemo : MonoBehaviour
@@ -17,7 +18,7 @@ public class AutoDemo : MonoBehaviour
 
     void Start()
     {
-        if (CmdArgs.Has("-autoplay") || CmdArgs.Has("-screenshots") || CmdArgs.Has("-demo") || CmdArgs.Has("-jumpscare") || CmdArgs.Has("-skinshots") || CmdArgs.Has("-openskins"))
+        if (CmdArgs.Has("-autoplay") || CmdArgs.Has("-screenshots") || CmdArgs.Has("-demo") || CmdArgs.Has("-jumpscare") || CmdArgs.Has("-skinshots") || CmdArgs.Has("-fixshots") || CmdArgs.Has("-openskins"))
             StartCoroutine(Run());
     }
 
@@ -26,6 +27,11 @@ public class AutoDemo : MonoBehaviour
         yield return null;
         yield return null;
 
+        if (CmdArgs.Has("-fixshots"))
+        {
+            yield return TakeFixShots();
+            yield break;
+        }
         if (CmdArgs.Has("-skinshots"))
         {
             yield return TakeSkinShots();
@@ -197,6 +203,71 @@ public class AutoDemo : MonoBehaviour
         yield return Shot(dir, "skins_dev.png");
 
         try { File.WriteAllText(Path.Combine(dir, "skins_done.txt"), "ok"); }
+        catch { /* ignore */ }
+        yield return new WaitForSeconds(0.2f);
+        Application.Quit();
+#if UNITY_EDITOR
+        UnityEditor.EditorApplication.isPlaying = false;
+#endif
+    }
+
+    IEnumerator TakeFixShots()
+    {
+        string dir = CmdArgs.Value("-shotdir", Path.Combine(Application.dataPath, "..", "Screenshots"));
+        try { Directory.CreateDirectory(dir); }
+        catch { /* ignore */ }
+
+        if (CameraOrbit.I != null)
+        {
+            CameraOrbit.I.autoOrbit = false;
+            CameraOrbit.I.yaw = 38f;
+            CameraOrbit.I.targetYaw = 38f;
+            CameraOrbit.I.pitch = 42f;
+        }
+
+        if (GameManager.I != null)
+        {
+            GameManager.I.TryUnlockCode("MIKU EXTRA");
+            GameManager.I.SelectSkinId("miku_extra");
+            GameManager.I.StartGame(true);
+            GameManager.I.DemoNastavTvar(3);
+            GameManager.I.DemoZamkni();
+        }
+        yield return new WaitForSeconds(0.7f);
+        yield return Shot(dir, "fix_miku_extra_landed.png");
+
+        if (GameManager.I != null)
+        {
+            GameManager.I.TryUnlockCode("ASTOLFO EXTRA");
+            GameManager.I.SelectSkinId("astolfo_extra");
+            GameManager.I.StartGame(true);
+            GameManager.I.DemoNastavTvar(3);
+            GameManager.I.DemoZamkni();
+        }
+        yield return new WaitForSeconds(0.7f);
+        yield return Shot(dir, "fix_astolfo_extra_landed.png");
+
+        if (GameManager.I != null)
+        {
+            GameManager.I.TryUnlockCode("ASTOLFO");
+            GameManager.I.SelectSkinId("astolfo");
+            GameManager.I.StartGame(true);
+        }
+        yield return new WaitForSeconds(0.85f);
+        yield return Shot(dir, "fix_astolfo_portrait.png");
+
+        if (GameManager.I != null)
+        {
+            GameManager.I.TryUnlockCode("DEV");
+            KostkaSkin.SetJump(KostkaSkin.Current() != null ? KostkaSkin.Current().id : "astolfo", "astolfo");
+            GameManager.I.StartGame(true);
+            GameManager.I.StartCoroutine(GameManager.I.ForceJumpscare());
+        }
+        yield return new WaitForSeconds(0.4f);
+        yield return Shot(dir, "fix_astolfo_jumpscare.png");
+        yield return new WaitForSeconds(1.0f);
+
+        try { File.WriteAllText(Path.Combine(dir, "fix_done.txt"), "ok"); }
         catch { /* ignore */ }
         yield return new WaitForSeconds(0.2f);
         Application.Quit();

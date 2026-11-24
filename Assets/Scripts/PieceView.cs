@@ -19,6 +19,24 @@ public class PieceView
         root = go.transform;
     }
 
+    public GameObject DetachCharacter(Transform parent)
+    {
+        GameObject go = null;
+        if (miku != null)
+        {
+            go = miku.gameObject;
+            miku.transform.SetParent(parent, true);
+            miku = null;
+        }
+        else if (astolfo != null)
+        {
+            go = astolfo.gameObject;
+            astolfo.transform.SetParent(parent, true);
+            astolfo = null;
+        }
+        return go;
+    }
+
     public void Hide()
     {
         root.gameObject.SetActive(false);

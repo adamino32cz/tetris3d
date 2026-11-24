@@ -1,7 +1,8 @@
 using System.Collections.Generic;
 using UnityEngine;
 
-// Jedna pózovaná Tda Miku na figurku (tvar kusu). Položené buňky zůstávají kostkami.
+// Jedna pózovaná Tda Miku na figurku (tvar kusu). Po dopadu zůstane figurka na desce,
+// dokud se nesmaže aspoň jedna její buňka.
 public class KostkaMiku : MonoBehaviour
 {
     static GameObject prefab;
@@ -71,7 +72,72 @@ public class KostkaMiku : MonoBehaviour
         if (anim != null) anim.enabled = false;
         CacheBones(inst.transform);
         rends = inst.GetComponentsInChildren<Renderer>();
+        ConvertToUrp();
+        rends = inst.GetComponentsInChildren<Renderer>();
         ready = bones.Count > 0 || (rends != null && rends.Length > 0);
+    }
+
+    static Texture2D LoadTex(string file)
+    {
+        var t = Resources.Load<Texture2D>("TdaMiku/Textures/" + file);
+        if (t == null) t = Resources.Load<Texture2D>("TdaMiku/Textures/" + file + ".tga");
+        return t;
+    }
+
+    // Importovaný MMD/FBX Phong/Standard v URP (hlavně WebGL) vychází bílý/šedý.
+    // Převedeme na URP Unlit + base map z Resources, ať jsou barvy ve buildu jisté.
+    void ConvertToUrp()
+    {
+        var body = LoadTex("mikuv4x_body00");
+        var face = LoadTex("face_Mikuv4x");
+        var hair = LoadTex("hair_Mikuv4x");
+        var ap = LoadTex("body02_MikuAp");
+        if (rends == null) return;
+        for (int i = 0; i < rends.Length; i++)
+        {
+            var r = rends[i];
+            if (r == null) continue;
+            var srcs = r.sharedMaterials;
+            if (srcs == null || srcs.Length == 0) continue;
+            var dsts = new Material[srcs.Length];
+            for (int m = 0; m < srcs.Length; m++)
+            {
+                var src = srcs[m];
+                Texture tex = null;
+                if (src != null)
+                {
+                    if (src.HasProperty("_BaseMap")) tex = src.GetTexture("_BaseMap");
+                    if (tex == null && src.HasProperty("_MainTex")) tex = src.GetTexture("_MainTex");
+                }
+                string nm = ((src != null ? src.name : "") + " " + r.gameObject.name).ToLowerInvariant();
+                int idx = -1;
+                if (src != null)
+                {
+                    string n = src.name;
+                    // Unity často pojmenuje sloty "0"…"17" nebo "Material #12"
+                    for (int k = n.Length - 1, acc = 0, p = 1; k >= 0; k--)
+                    {
+                        char c = n[k];
+                        if (c >= '0' && c <= '9') { acc += (c - '0') * p; p *= 10; idx = acc; }
+                        else if (idx >= 0) break;
+                    }
+                }
+                bool isHair = idx == 11 || idx == 12 || nm.Contains("hair") || nm.Contains("kami") || nm.Contains("髪");
+                bool isFace = (idx >= 7 && idx <= 10) || idx == 13 || idx == 14 || nm.Contains("face") || nm.Contains("eye") || nm.Contains("head") || nm.Contains("顔") || nm.Contains("目");
+                bool isAp = idx == 16 || idx == 17 || nm.Contains("ap") || nm.Contains("acc");
+                if (tex == null)
+                {
+                    if (isHair) tex = hair;
+                    else if (isFace) tex = face;
+                    else if (isAp) tex = ap;
+                    else tex = body;
+                }
+                bool cutout = isHair || (tex != null && (tex.name.ToLowerInvariant().Contains("hair") || tex.name.ToLowerInvariant().Contains("ap")));
+                dsts[m] = KostkaVisual.UnlitTextured(tex, Color.white, cutout);
+            }
+            r.sharedMaterials = dsts;
+            r.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.On;
+        }
     }
 
     void CacheBones(Transform t)

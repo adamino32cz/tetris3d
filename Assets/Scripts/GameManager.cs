@@ -51,6 +51,17 @@ public class GameManager : MonoBehaviour
 
     readonly List<int> pytel = new List<int>();
     readonly Dictionary<Vector3Int, Transform> lezici = new Dictionary<Vector3Int, Transform>();
+    readonly List<FiguraLezici> leziciFigury = new List<FiguraLezici>();
+
+    class FiguraLezici
+    {
+        public GameObject go;
+        public readonly List<Vector3Int> cells = new List<Vector3Int>();
+        public readonly List<Transform> markery = new List<Transform>();
+        public int tvar;
+        public Color barva;
+    }
+
     readonly List<GameObject> dekor = new List<GameObject>();
 
     PieceView aktivni, duch, nahled;
@@ -346,28 +357,91 @@ public class GameManager : MonoBehaviour
         Zamknout();
     }
 
-    void Zamknout()
+    void Zamknout(bool dalsiSpawn = true)
     {
         if (lokal == null) return;
         board.Place(puvod, lokal, tvar + 1);
         var nove = new List<Transform>();
+        bool figura = KostkaSkin.IsCharacter && aktivni != null;
+        FiguraLezici fig = null;
+        if (figura)
+        {
+            fig = new FiguraLezici();
+            fig.tvar = tvar;
+            fig.barva = KostkaSkin.ColorOf(tvar);
+            var wrap = new GameObject("FiguraLezici");
+            wrap.transform.SetParent(leziciRoot, false);
+            var detached = aktivni.DetachCharacter(wrap.transform);
+            fig.go = wrap;
+            if (detached == null)
+            {
+                Destroy(wrap);
+                figura = false;
+                fig = null;
+            }
+        }
         for (int i = 0; i < lokal.Length; i++)
         {
             var p = puvod + lokal[i];
             if (!board.InBounds(p)) continue;
-            var go = NovaBunka(leziciRoot, p, tvar, "Bunka");
-            lezici[p] = go.transform;
-            nove.Add(go.transform);
+            if (figura)
+            {
+                var mark = new GameObject("FigMark");
+                mark.transform.SetParent(leziciRoot, false);
+                mark.transform.position = KostkaVisual.World(p);
+                var b = mark.AddComponent<KostkaBunka>();
+                b.tvar = tvar;
+                b.ghost = false;
+                lezici[p] = mark.transform;
+                fig.cells.Add(p);
+                fig.markery.Add(mark.transform);
+            }
+            else
+            {
+                var go = NovaBunka(leziciRoot, p, tvar, "Bunka");
+                lezici[p] = go.transform;
+                nove.Add(go.transform);
+            }
         }
+        if (figura && fig != null) leziciFigury.Add(fig);
         if (aktivni != null) aktivni.Hide();
         if (duch != null) duch.Hide();
-        StartCoroutine(Punch(nove));
+        if (nove.Count > 0) StartCoroutine(Punch(nove));
         if (SoundFX.I != null) SoundFX.I.Lock();
 
         var plne = board.NajdiPlneRadky();
         if (plne.Count > 0) StartCoroutine(SmazRadky(plne));
-        else Spawn();
+        else if (dalsiSpawn) Spawn();
+        else
+        {
+            busy = true;
+            if (aktivni != null) aktivni.Hide();
+            if (duch != null) duch.Hide();
+        }
         ObnovHud();
+    }
+
+    public void DemoZamkni()
+    {
+        if (lokal == null) return;
+        Zamknout(false);
+    }
+
+    void RozbitFiguru(FiguraLezici fig, HashSet<Vector3Int> odstranene)
+    {
+        if (fig == null) return;
+        if (fig.go != null) Destroy(fig.go);
+        fig.go = null;
+        for (int i = 0; i < fig.cells.Count; i++)
+        {
+            var c = fig.cells[i];
+            if (i < fig.markery.Count && fig.markery[i] != null)
+                Destroy(fig.markery[i].gameObject);
+            var go = NovaBunka(leziciRoot, c, fig.tvar, "Bunka");
+            lezici[c] = go.transform;
+        }
+        fig.markery.Clear();
+        fig.cells.Clear();
     }
 
     IEnumerator Punch(List<Transform> list)
@@ -409,6 +483,21 @@ public class GameManager : MonoBehaviour
             prvni = false;
 
             var posun = board.SmazASesun(plne, out var odstranene);
+            if (leziciFigury.Count > 0)
+            {
+                for (int fi = leziciFigury.Count - 1; fi >= 0; fi--)
+                {
+                    var fig = leziciFigury[fi];
+                    bool zasah = false;
+                    for (int ci = 0; ci < fig.cells.Count; ci++)
+                        if (odstranene.Contains(fig.cells[ci])) { zasah = true; break; }
+                    if (zasah)
+                    {
+                        RozbitFiguru(fig, odstranene);
+                        leziciFigury.RemoveAt(fi);
+                    }
+                }
+            }
             var odlet = new List<Transform>();
             var klice = new List<Vector3Int>(lezici.Keys);
             for (int i = 0; i < klice.Count; i++)
@@ -464,6 +553,54 @@ public class GameManager : MonoBehaviour
             lezici.Clear();
             foreach (var kv in noveDic) lezici[kv.Key] = kv.Value;
 
+            var figFrom = new Dictionary<GameObject, Vector3>();
+            var figTo = new Dictionary<GameObject, Vector3>();
+            for (int fi = leziciFigury.Count - 1; fi >= 0; fi--)
+            {
+                var fig = leziciFigury[fi];
+                Vector3Int? dlt = null;
+                bool stejne = true;
+                var noveC = new List<Vector3Int>();
+                for (int ci = 0; ci < fig.cells.Count; ci++)
+                {
+                    var from = fig.cells[ci];
+                    var to = posun.ContainsKey(from) ? posun[from] : from;
+                    var d = to - from;
+                    if (dlt == null) dlt = d;
+                    else if (d != dlt.Value) stejne = false;
+                    noveC.Add(to);
+                }
+                if (!stejne)
+                {
+                    fig.cells.Clear();
+                    fig.cells.AddRange(noveC);
+                    RozbitFiguru(fig, null);
+                    leziciFigury.RemoveAt(fi);
+                    continue;
+                }
+                if (fig.go != null)
+                {
+                    figFrom[fig.go] = fig.go.transform.position;
+                    Vector3 midOld = Vector3.zero, midNew = Vector3.zero;
+                    for (int ci = 0; ci < fig.cells.Count; ci++)
+                    {
+                        midOld += KostkaVisual.World(fig.cells[ci]);
+                        midNew += KostkaVisual.World(noveC[ci]);
+                    }
+                    if (fig.cells.Count > 0)
+                    {
+                        midOld /= fig.cells.Count;
+                        midNew /= fig.cells.Count;
+                    }
+                    figTo[fig.go] = fig.go.transform.position + (midNew - midOld);
+                }
+                fig.cells.Clear();
+                fig.cells.AddRange(noveC);
+                for (int ci = 0; ci < fig.markery.Count && ci < noveC.Count; ci++)
+                    if (fig.markery[ci] != null)
+                        lezici[noveC[ci]] = fig.markery[ci];
+            }
+
             float t2 = 0f;
             var fromPos = new Dictionary<Transform, Vector3>();
             var toPos = new Dictionary<Transform, Vector3>();
@@ -472,6 +609,12 @@ public class GameManager : MonoBehaviour
                 if (kv.Value == null) continue;
                 fromPos[kv.Value] = kv.Value.position;
                 toPos[kv.Value] = KostkaVisual.World(kv.Key);
+            }
+            foreach (var kv in figTo)
+            {
+                if (kv.Key == null) continue;
+                fromPos[kv.Key.transform] = figFrom[kv.Key];
+                toPos[kv.Key.transform] = kv.Value;
             }
             while (t2 < 0.20f)
             {
@@ -483,6 +626,8 @@ public class GameManager : MonoBehaviour
             }
             foreach (var kv in lezici)
                 if (kv.Value != null) kv.Value.position = KostkaVisual.World(kv.Key);
+            foreach (var kv in figTo)
+                if (kv.Key != null) kv.Key.transform.position = kv.Value;
 
             plne = board.NajdiPlneRadky();
         }
@@ -760,6 +905,10 @@ public class GameManager : MonoBehaviour
         foreach (var kv in lezici)
             if (kv.Value != null) Destroy(kv.Value.gameObject);
         lezici.Clear();
+        for (int i = 0; i < leziciFigury.Count; i++)
+            if (leziciFigury[i] != null && leziciFigury[i].go != null)
+                Destroy(leziciFigury[i].go);
+        leziciFigury.Clear();
     }
 
     void PostavSvet()
