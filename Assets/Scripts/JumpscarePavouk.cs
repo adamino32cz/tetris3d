@@ -7,6 +7,7 @@ using UnityEngine.UI;
 // Procedurální pavouk pro krátký jumpscare (tělo, zadeček, 8 nohou, červené oči).
 public class JumpscarePavouk : MonoBehaviour
 {
+    public static int VideoFrameIndex = -1;
     readonly List<Transform> kyce = new List<Transform>();
     readonly List<Quaternion> kyceRest = new List<Quaternion>();
 
@@ -452,5 +453,112 @@ public class JumpscarePavouk : MonoBehaviour
         Object.Destroy(noiseTex);
         Object.Destroy(root);
     }
+
+
+    // Videojumpscare: vystřižený pavouk z klipu přes ztmavenou hru, třes a vlastní zvuk.
+    public static IEnumerator HrajVideo(Canvas canvas, Texture2D[] snimky, AudioClip zvuk, float fps = 20f)
+    {
+        if (canvas == null || snimky == null || snimky.Length == 0) yield break;
+        if (zvuk != null && SoundFX.I != null) SoundFX.I.PlayClip(zvuk, 1f);
+        else if (SoundFX.I != null) SoundFX.I.ScreamSilny();
+
+        var root = new GameObject("PavoukVideoUI");
+        root.transform.SetParent(canvas.transform, false);
+        root.transform.SetAsLastSibling();
+        var rootRt = root.AddComponent<RectTransform>();
+        rootRt.anchorMin = Vector2.zero;
+        rootRt.anchorMax = Vector2.one;
+        rootRt.offsetMin = Vector2.zero;
+        rootRt.offsetMax = Vector2.zero;
+
+        var dimGo = new GameObject("Dim");
+        dimGo.transform.SetParent(root.transform, false);
+        var dim = dimGo.AddComponent<Image>();
+        dim.color = new Color(0.02f, 0.01f, 0.02f, 0.82f);
+        var drt = dim.rectTransform;
+        drt.anchorMin = Vector2.zero;
+        drt.anchorMax = Vector2.one;
+        drt.offsetMin = Vector2.zero;
+        drt.offsetMax = Vector2.zero;
+
+        var fotoGo = new GameObject("Video");
+        fotoGo.transform.SetParent(root.transform, false);
+        var raw = fotoGo.AddComponent<RawImage>();
+        raw.texture = snimky[0];
+        raw.color = Color.white;
+        var prt = raw.rectTransform;
+        prt.anchorMin = new Vector2(0.5f, 0.5f);
+        prt.anchorMax = new Vector2(0.5f, 0.5f);
+        prt.pivot = new Vector2(0.32f, 0.38f);
+        var canvRt = canvas.GetComponent<RectTransform>();
+        float h = (canvRt != null && canvRt.rect.height > 1f) ? canvRt.rect.height : 1080f;
+        float aspect = (float)snimky[0].width / Mathf.Max(1, snimky[0].height);
+        prt.sizeDelta = new Vector2(h * aspect, h);
+        prt.localScale = Vector3.one * 1.7f;
+
+        int n = snimky.Length;
+        // Poslední snímek je skoro černý motion blur — držíme předposlední (skok do tváře).
+        int peak = Mathf.Max(0, n - 2);
+        float frameDur = 1f / Mathf.Max(1f, fps);
+        float videoDur = (peak + 1) * frameDur;
+        float hold = 0.22f;
+        float fade = 0.18f;
+        float total = videoDur + hold + fade;
+        int lastIdx = -1;
+        float t = 0f;
+        bool leapShake = false;
+        VideoFrameIndex = 0;
+        while (t < total)
+        {
+            t += Time.unscaledDeltaTime;
+            int idx = Mathf.Clamp((int)(t / frameDur), 0, peak);
+            if (idx != lastIdx)
+            {
+                raw.texture = snimky[idx];
+                lastIdx = idx;
+                VideoFrameIndex = idx;
+            }
+
+            // Posledních ~18 % je skok do kamery.
+            float k = Mathf.Clamp01(t / videoDur);
+            float scale, px, py;
+            if (k < 0.82f)
+            {
+                float u = k / 0.82f;
+                scale = Mathf.Lerp(1.75f, 1.25f, u);
+                px = Mathf.Lerp(0.32f, 0.42f, u);
+                py = Mathf.Lerp(0.38f, 0.45f, u);
+                if (CameraOrbit.I != null) CameraOrbit.I.shake = 0.28f;
+            }
+            else
+            {
+                float u = (k - 0.82f) / 0.18f;
+                if (t > videoDur) u = 1f;
+                scale = Mathf.Lerp(1.25f, 1.08f, Mathf.Clamp01(u));
+                px = Mathf.Lerp(0.42f, 0.50f, Mathf.Clamp01(u));
+                py = Mathf.Lerp(0.45f, 0.50f, Mathf.Clamp01(u));
+                if (CameraOrbit.I != null) CameraOrbit.I.shake = 0.85f;
+                leapShake = true;
+            }
+            prt.pivot = new Vector2(px, py);
+            prt.localScale = Vector3.one * scale;
+            float jx = Mathf.Sin(t * 51f) * (leapShake ? 18f : 6f);
+            float jy = Mathf.Cos(t * 43f) * (leapShake ? 12f : 5f);
+            prt.anchoredPosition = new Vector2(jx, jy);
+
+            if (t > videoDur + hold)
+            {
+                float f = Mathf.Clamp01((t - videoDur - hold) / fade);
+                raw.color = new Color(1f, 1f, 1f, 1f - f);
+                dim.color = new Color(0.02f, 0.01f, 0.02f, 0.82f * (1f - f));
+            }
+            yield return null;
+        }
+
+        if (CameraOrbit.I != null) CameraOrbit.I.shake = 0f;
+        VideoFrameIndex = -1;
+        Object.Destroy(root);
+    }
+
 
 }

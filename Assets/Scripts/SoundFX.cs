@@ -24,6 +24,13 @@ public class SoundFX : MonoBehaviour
     public void StartGame() => Chord(new[] { 392f, 523f, 659f }, 0.12f, 0.3f);
 
     // Ostrý výkřik k jumpscare (šum + klesající vřískot).
+    public void PlayClip(AudioClip clip, float vol = 1f)
+    {
+        if (src == null || clip == null) return;
+        src.volume = 1f;
+        src.PlayOneShot(clip, vol);
+    }
+
     public void Scream()
     {
         if (src == null) return;

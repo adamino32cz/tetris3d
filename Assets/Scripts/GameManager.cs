@@ -26,17 +26,20 @@ public class GameManager : MonoBehaviour
 
     const string PrefRekord = "Kostka.HighScore";
     const string PrefJumpscare = "Kostka.Jumpscare";
-    const string PrefJumpscareStyl = "Kostka.JumpscareStylV2";
+    const string PrefJumpscareStyl = "Kostka.JumpscareStylV3";
     public const int Styl3D = 0;
     public const int StylKlasik = 1;
     public const int StylAnim = 2;
+    public const int StylVideo = 3;
     const int RadNaLevel = 8;
 
     int skore, rekord, level = 1, rady;
     public bool jumpscareZapnuto = true;
-    public int jumpscareStyl = StylAnim;
+    public int jumpscareStyl = StylVideo;
     Texture2D pavoukFoto;
     Texture2D[] pavoukAnim;
+    Texture2D[] pavoukVideo;
+    AudioClip pavoukVideoZvuk;
     int tvar, dalsiTvar;
     Vector3Int puvod;
     Vector3Int[] lokal;
@@ -70,7 +73,7 @@ public class GameManager : MonoBehaviour
         QualitySettings.SetQualityLevel(Mathf.Max(0, QualitySettings.names.Length - 1), true);
         rekord = PlayerPrefs.GetInt(PrefRekord, 0);
         jumpscareZapnuto = PlayerPrefs.GetInt(PrefJumpscare, 1) != 0;
-        jumpscareStyl = PlayerPrefs.GetInt(PrefJumpscareStyl, StylAnim);
+        jumpscareStyl = PlayerPrefs.GetInt(PrefJumpscareStyl, StylVideo);
         pavoukFoto = Resources.Load<Texture2D>("PavoukKlasik");
         var anim = new System.Collections.Generic.List<Texture2D>();
         for (int i = 0; i < 4; i++)
@@ -80,6 +83,11 @@ public class GameManager : MonoBehaviour
         }
         if (anim.Count == 0 && pavoukFoto != null) anim.Add(pavoukFoto);
         pavoukAnim = anim.ToArray();
+        var vid = Resources.LoadAll<Texture2D>("PavoukVideo");
+        if (vid != null && vid.Length > 1)
+            System.Array.Sort(vid, (a, b) => string.CompareOrdinal(a.name, b.name));
+        pavoukVideo = vid;
+        pavoukVideoZvuk = Resources.Load<AudioClip>("PavoukVideoZvuk");
         KostkaVisual.SetTemplates(litTemplate, unlitTemplate);
         KostkaVisual.Init();
         ZajistiPisma();
@@ -508,10 +516,11 @@ public class GameManager : MonoBehaviour
 
     public void PrepnoutStyl()
     {
-        // animovaný → fotka → procedurální 3D → animovaný
-        if (jumpscareStyl == StylAnim) jumpscareStyl = StylKlasik;
+        // video → animovaný → fotka → procedurální 3D → video
+        if (jumpscareStyl == StylVideo) jumpscareStyl = StylAnim;
+        else if (jumpscareStyl == StylAnim) jumpscareStyl = StylKlasik;
         else if (jumpscareStyl == StylKlasik) jumpscareStyl = Styl3D;
-        else jumpscareStyl = StylAnim;
+        else jumpscareStyl = StylVideo;
         PlayerPrefs.SetInt(PrefJumpscareStyl, jumpscareStyl);
         PlayerPrefs.Save();
         if (!busy) StartCoroutine(UkázatStylANahled());
@@ -520,7 +529,8 @@ public class GameManager : MonoBehaviour
     IEnumerator UkázatStylANahled()
     {
         busy = true;
-        string txt = jumpscareStyl == StylAnim ? "Pavouk: animovaný"
+        string txt = jumpscareStyl == StylVideo ? "Pavouk: video"
+                   : jumpscareStyl == StylAnim ? "Pavouk: animovaný"
                    : jumpscareStyl == StylKlasik ? "Pavouk: fotka"
                    : "Pavouk: 3D";
         yield return UkázatNapis(txt, 0.45f);
@@ -551,7 +561,9 @@ public class GameManager : MonoBehaviour
 
     IEnumerator Jumpscare()
     {
-        if (jumpscareStyl == StylAnim && pavoukAnim != null && pavoukAnim.Length > 0 && canvas != null)
+        if (jumpscareStyl == StylVideo && pavoukVideo != null && pavoukVideo.Length > 0 && canvas != null)
+            yield return JumpscarePavouk.HrajVideo(canvas, pavoukVideo, pavoukVideoZvuk, 20f);
+        else if (jumpscareStyl == StylAnim && pavoukAnim != null && pavoukAnim.Length > 0 && canvas != null)
             yield return JumpscarePavouk.HrajAnimovany(canvas, pavoukAnim, 1.25f);
         else if (jumpscareStyl == StylKlasik && pavoukFoto != null && canvas != null)
             yield return JumpscarePavouk.HrajKlasik(canvas, pavoukFoto, 1.05f);

@@ -1,0 +1,11 @@
+Zdroj videojumpscaru (výřez s odstraněným pozadím):
+
+- Video: https://youtu.be/uV_k8yK92dI
+  (https://www.youtube.com/watch?v=uV_k8yK92dI)
+- Název: SPIDER JUMP SCARE!
+- Kanál: Tigran (@tigrann8287)
+- Kanál URL: https://www.youtube.com/channel/UC4fmEd2byg3YgWrB1hW_eHQ
+- Délka originálu: 5 s (nahráno 22. 12. 2015)
+- Ve hře: užitečný výřez cca 2,50–4,12 s (pavouk se rozběhne a skočí do kamery; televizní statika na konci klipu je vynechaná), 20 fps, 33 snímků 512×256 s průhledným pozadím (rembg u2netp + luma-key u skoku) a zvuk z klipu.
+
+Metadata stažena nástrojem yt-dlp.

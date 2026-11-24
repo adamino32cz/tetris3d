@@ -57,7 +57,17 @@ Hotový WebGL se nahraje na GitHub Pages skriptem `Tools/publish_webgl.sh`. Kdy�
 Skryté klávesy (nejsou v tabulce ovládání ve hře):
 
 - **J** — zapne / vypne jumpscare po smazání řady (výchozí: zapnuto, volba se pamatuje).
-- **K** — přepíná styl jumpscaru v cyklu **animovaný → fotka → procedurální 3D** a hned přehraje ukázku. Výchozí styl je animovaný (živý fotojumpscare: skok z tmy, škubání, glitch a silnější řev).
+- **K** — přepíná styl jumpscaru v cyklu **video → animovaný → fotka → procedurální 3D** a hned přehraje ukázku. Výchozí styl je video (vystřižený pavouk z klipu přes ztmavenou hru, třes a zvuk z originálu).
+
+### Zdroj videa pavouka
+
+Soubory `Assets/Resources/PavoukVideo/*.png` a `PavoukVideoZvuk.ogg` vycházejí z klipu:
+
+- **Video:** [SPIDER JUMP SCARE!](https://youtu.be/uV_k8yK92dI) (`https://www.youtube.com/watch?v=uV_k8yK92dI`)
+- **Kanál:** Tigran ([@tigrann8287](https://www.youtube.com/@tigrann8287))
+- **Kanál URL:** https://www.youtube.com/channel/UC4fmEd2byg3YgWrB1hW_eHQ
+- Úpravy ve hře: výřez cca 2,50–4,12 s (skok do kamery, bez statiky na konci), 20 fps, odstraněné pozadí (rembg + luma-key u skoku), vlastní zvuk z klipu.
+- Poznámka ke zdroji je i v `Assets/Resources/PavoukVideo_ZDROJ.txt`.
 
 ### Zdroj fotografie pavouka
 
