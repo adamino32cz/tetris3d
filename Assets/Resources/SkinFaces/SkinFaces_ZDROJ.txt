@@ -6,13 +6,11 @@ Portréty na stěnách kostek (skiny MIKU a ASTOLFO) a pro jumpscare v panelu DE
   Character License + Tda / Jjinomu). Materiály se za běhu převádějí na URP Unlit
   s texturami z Resources/TdaMiku/Textures, aby ve WebGL nebyly šedé/bílé.
 
-- AstolfoFace.png — původní stylizovaný portrét (čelní bust) nakreslený pro
-  školní hru KOSTKA podle typických znaků postavy Astolfo (Fate/Apocrypha,
-  Type-Moon): dlouhé růžové vlasy, velká černá mašle, jeden dlouhý cop,
-  růžovofialové oči, fialová mikina. Není oficiální artwork Type-Moon /
-  Ototsugu Konoe a není to stažený fanart (oficiální i většina fanartu
-  se nedá volně redistribuovat). Na Wikimedia Commons je jen CC0 fotka
-  cosplayera, tu jsme jako obličej nepoužili.
-  3D figurka ve skinu ASTOLFO EXTRA je původní zjednodušený model se stejným
-  vzhledem (cop, mašle, fialová mikina, černá sukně, bílé podkolenky).
-  Postava Astolfo je dílo Type-Moon / Fate; použití je nekomerční školní.
+- AstolfoFace.png, AstolfoJump.png — original AI-generated illustration created
+  for this project (původní AI ilustrace vytvořená pro tuto školní hru):
+  růžové vlasy s bílým pruhem, černé mašle, cop, bílý sailor a červený šátek,
+  peace sign. Face je ořez na obličej pro stěny kostek, Jump je celý bust
+  pro jumpscare. Není oficiální artwork Type-Moon / Ototsugu Konoe.
+  3D figurka ASTOLFO EXTRA je původní zjednodušený model ve stejném duchu
+  (sailor, šátek, cop, černé mašle). Postava Astolfo je dílo Type-Moon / Fate;
+  použití je nekomerční školní.

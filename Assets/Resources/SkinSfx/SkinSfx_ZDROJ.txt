@@ -6,11 +6,10 @@ Zdroje zvuků pro panel DEV / modifikace (zvuk při smazání řady):
   Licence: CC0 (public domain)
 
 - yamete.ogg — krátká neexplicitní fráze „yamete kudasai“ (やめてください, „prosím přestaň“).
-  Vyrobeno pro školní hru KOSTKA syntézou espeak-ng (hlas ja, zvýšená výška).
-  Požadovaný klip https://youtu.be/pvF-nQh1Yyc („How to pronounce YAMETE KUDASAI“,
-  kanál Pronounce Ink, 5 s) se do veřejného úložiště / GitHub Pages nedal vložit:
-  jde o cizí YouTube zvuk se standardní licencí, ne o volně redistribuovatelný
-  soubor. Ponechána vlastní TTS verze.
+  Syntetizováno softwarem VOICEVOX (https://voicevox.hiroshiba.jp/), hlas
+  **VOICEVOX:四国めたん** (styl あまあま, zvýšená výška/intonace).
+  Využití v bezplatné školní hře je v souladu s
+  https://zunko.jp/con_ongen_kiyaku.html (kredity: VOICEVOX:四国めたん).
 
 - sfx67.ogg — meme hláška „six / seven“.
   Vyrobeno pro školní hru KOSTKA syntézou espeak-ng (en-us), bez cizího sample.

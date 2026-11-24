@@ -1,8 +1,8 @@
 using System.Collections.Generic;
 using UnityEngine;
 
-// Původní zjednodušená figurka inspirovaná Astolfem: dlouhé růžové vlasy, jeden cop,
-// velká černá mašle, fialová mikina, černá sukně, bílé podkolenky.
+// Původní zjednodušená figurka inspirovaná Astolfem: dlouhé růžové vlasy s bílým pruhem, černé mašle, jeden cop,
+// bílý sailor top, červený šátek, černá sukně, bílé podkolenky.
 // Každý tvar kusu = jedna pózovaná figurka (troll skin, smí přečnívat).
 public class KostkaAstolfo : MonoBehaviour
 {
@@ -47,17 +47,19 @@ public class KostkaAstolfo : MonoBehaviour
         var root = new GameObject("Root").transform;
         root.SetParent(transform, false);
 
-        // fialová mikina + černá sukně
-        var purple = new Color(0.48f, 0.32f, 0.72f);
+        // bílý sailor + červený límec/šátek + černá sukně
+        var white = Color.white;
+        var red = new Color(0.78f, 0.18f, 0.28f);
         var pink = new Color(1f, 0.62f, 0.80f);
         var skin = new Color(1f, 0.86f, 0.80f);
         Part(root, "Hip", PrimitiveType.Sphere, new Vector3(0f, 0.70f, 0f), new Vector3(0.46f, 0.26f, 0.36f), blackTex, new Color(0.08f, 0.07f, 0.09f));
-        // skládaná sukně (širší disk)
         Part(root, "Skirt", PrimitiveType.Sphere, new Vector3(0f, 0.62f, 0f), new Vector3(0.72f, 0.22f, 0.62f), blackTex, new Color(0.07f, 0.06f, 0.08f));
-        Part(root, "Spine", PrimitiveType.Capsule, new Vector3(0f, 1.12f, 0f), new Vector3(0.42f, 0.30f, 0.32f), clothTex, purple);
-        Part(root, "Chest", PrimitiveType.Sphere, new Vector3(0f, 1.46f, 0f), new Vector3(0.56f, 0.38f, 0.36f), clothTex, purple);
-        // kapuce
-        Part(root, "Hood", PrimitiveType.Sphere, new Vector3(0f, 1.68f, -0.12f), new Vector3(0.55f, 0.28f, 0.40f), clothTex, new Color(0.42f, 0.28f, 0.66f));
+        Part(root, "Spine", PrimitiveType.Capsule, new Vector3(0f, 1.12f, 0f), new Vector3(0.42f, 0.30f, 0.32f), clothTex, white);
+        Part(root, "Chest", PrimitiveType.Sphere, new Vector3(0f, 1.46f, 0f), new Vector3(0.56f, 0.38f, 0.36f), clothTex, white);
+        // sailor límec + šátek
+        Part(root, "Collar", PrimitiveType.Sphere, new Vector3(0f, 1.62f, 0.06f), new Vector3(0.62f, 0.16f, 0.42f), clothTex, red);
+        Part(root, "Kerchief", PrimitiveType.Sphere, new Vector3(0f, 1.42f, 0.28f), new Vector3(0.22f, 0.28f, 0.10f), clothTex, red);
+        Part(root, "KerchiefKnot", PrimitiveType.Sphere, new Vector3(0f, 1.28f, 0.30f), new Vector3(0.16f, 0.12f, 0.10f), clothTex, new Color(0.70f, 0.14f, 0.24f));
 
         var head = Part(root, "Head", PrimitiveType.Sphere, new Vector3(0f, 1.95f, 0f), Vector3.one * 0.42f, skinTex, skin);
         var face = GameObject.CreatePrimitive(PrimitiveType.Quad);
@@ -78,16 +80,18 @@ public class KostkaAstolfo : MonoBehaviour
         var braid = Part(head, "Braid", PrimitiveType.Capsule, new Vector3(-0.28f, -0.85f, 0.12f), new Vector3(0.28f, 0.85f, 0.28f), hairTex, new Color(1f, 0.58f, 0.78f));
         braid.localRotation = Quaternion.Euler(18f, 0f, 18f);
         Part(braid, "BraidTip", PrimitiveType.Sphere, new Vector3(0f, -1.05f, 0f), Vector3.one * 0.55f, hairTex, new Color(1f, 0.55f, 0.76f));
-        // velká černá mašle nahoře
-        Part(head, "BowL", PrimitiveType.Sphere, new Vector3(-0.28f, 0.52f, 0.08f), new Vector3(0.42f, 0.28f, 0.14f), blackTex, Color.black);
-        Part(head, "BowR", PrimitiveType.Sphere, new Vector3(0.28f, 0.52f, 0.08f), new Vector3(0.42f, 0.28f, 0.14f), blackTex, Color.black);
-        Part(head, "BowC", PrimitiveType.Sphere, new Vector3(0f, 0.50f, 0.16f), new Vector3(0.16f, 0.16f, 0.16f), blackTex, Color.black);
+        Part(braid, "BraidBow", PrimitiveType.Sphere, new Vector3(0.15f, -0.15f, 0.25f), new Vector3(0.55f, 0.40f, 0.25f), blackTex, Color.black);
+        // dvě černé mašle po stranách + mašle na copu
+        Part(head, "BowL", PrimitiveType.Sphere, new Vector3(-0.42f, 0.28f, 0.10f), new Vector3(0.28f, 0.22f, 0.12f), blackTex, Color.black);
+        Part(head, "BowL2", PrimitiveType.Sphere, new Vector3(-0.52f, 0.22f, 0.06f), new Vector3(0.18f, 0.14f, 0.10f), blackTex, Color.black);
+        Part(head, "BowR", PrimitiveType.Sphere, new Vector3(0.38f, 0.38f, 0.08f), new Vector3(0.28f, 0.22f, 0.12f), blackTex, Color.black);
+        Part(head, "BowR2", PrimitiveType.Sphere, new Vector3(0.48f, 0.32f, 0.04f), new Vector3(0.18f, 0.14f, 0.10f), blackTex, Color.black);
 
         // rukávy mikiny + ruce
-        var larm = Part(root, "LArm", PrimitiveType.Capsule, new Vector3(-0.58f, 1.44f, 0f), new Vector3(0.18f, 0.32f, 0.18f), clothTex, purple);
+        var larm = Part(root, "LArm", PrimitiveType.Capsule, new Vector3(-0.58f, 1.44f, 0f), new Vector3(0.18f, 0.32f, 0.18f), clothTex, white);
         larm.localRotation = Quaternion.Euler(0f, 0f, 90f);
         Part(larm, "LHand", PrimitiveType.Sphere, new Vector3(0f, -0.95f, 0f), Vector3.one * 0.55f, skinTex, skin);
-        var rarm = Part(root, "RArm", PrimitiveType.Capsule, new Vector3(0.58f, 1.44f, 0f), new Vector3(0.18f, 0.32f, 0.18f), clothTex, purple);
+        var rarm = Part(root, "RArm", PrimitiveType.Capsule, new Vector3(0.58f, 1.44f, 0f), new Vector3(0.18f, 0.32f, 0.18f), clothTex, white);
         rarm.localRotation = Quaternion.Euler(0f, 0f, -90f);
         Part(rarm, "RHand", PrimitiveType.Sphere, new Vector3(0f, -0.95f, 0f), Vector3.one * 0.55f, skinTex, skin);
 
@@ -128,7 +132,7 @@ public class KostkaAstolfo : MonoBehaviour
     {
         if (faceTex == null) faceTex = Resources.Load<Texture2D>("SkinFaces/AstolfoFace");
         if (hairTex == null) hairTex = Solid(new Color(1f, 0.62f, 0.80f));
-        if (clothTex == null) clothTex = Solid(new Color(0.48f, 0.32f, 0.72f));
+        if (clothTex == null) clothTex = Solid(Color.white);
         if (blackTex == null) blackTex = Solid(new Color(0.08f, 0.06f, 0.08f));
         if (skinTex == null) skinTex = Solid(new Color(1f, 0.88f, 0.82f));
     }

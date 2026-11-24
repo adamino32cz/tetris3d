@@ -421,6 +421,11 @@ public class GameManager : MonoBehaviour
         ObnovHud();
     }
 
+    public void DemoKonecHry()
+    {
+        KonecHry();
+    }
+
     public void DemoZamkni()
     {
         if (lokal == null) return;
@@ -730,7 +735,7 @@ public class GameManager : MonoBehaviour
         }
         if (content == "astolfo" && canvas != null)
         {
-            var tex = KostkaSkin.FaceTex("SkinFaces/AstolfoFace");
+            var tex = KostkaSkin.FaceTex("SkinFaces/AstolfoJump") ?? KostkaSkin.FaceTex("SkinFaces/AstolfoFace");
             if (tex != null)
             {
                 yield return JumpscarePavouk.HrajObrazek(canvas, tex, KostkaSkin.JumpscareClip("astolfo"));
@@ -1099,6 +1104,8 @@ public class GameManager : MonoBehaviour
         }
     }
 
+    public void NavratNaTitulku() => DemoNavratNaTitulku();
+
     public void DemoNavratNaTitulku()
     {
         StopAllCoroutines();
@@ -1452,10 +1459,11 @@ public class GameManager : MonoBehaviour
         konecPanel = Panel("Konec", canvGo.transform, Vector2.zero, new Vector2(1920, 1080), new Color(0.95f, 0.88f, 0.80f, 0.45f), null);
         Stretch(konecPanel);
         konecPanel.gameObject.SetActive(false);
-        var konecKarta = Panel("KonecKarta", konecPanel, Vector2.zero, new Vector2(620, 420), cream, dimSprite);
-        Txt("KonecT", konecKarta, new Vector2(0, 130), new Vector2(580, 80), "KONEC HRY", 64, fontTitle, ink, FontStyles.Bold, TextAlignmentOptions.Center);
-        txtKonecSkore = Txt("KonecS", konecKarta, new Vector2(0, 30), new Vector2(580, 80), "Skóre: 0", 32, fontUi, ink, FontStyles.Normal, TextAlignmentOptions.Center);
-        Tlacitko("Znovu", konecKarta, new Vector2(0, -110), new Vector2(280, 70), "ZNOVU", coral, Color.white, 32, () => StartGame(false));
+        var konecKarta = Panel("KonecKarta", konecPanel, Vector2.zero, new Vector2(700, 440), cream, dimSprite);
+        Txt("KonecT", konecKarta, new Vector2(0, 140), new Vector2(640, 80), "KONEC HRY", 64, fontTitle, ink, FontStyles.Bold, TextAlignmentOptions.Center);
+        txtKonecSkore = Txt("KonecS", konecKarta, new Vector2(0, 40), new Vector2(640, 80), "Skóre: 0", 32, fontUi, ink, FontStyles.Normal, TextAlignmentOptions.Center);
+        Tlacitko("Znovu", konecKarta, new Vector2(-160, -120), new Vector2(240, 70), "ZNOVU", coral, Color.white, 32, () => StartGame(false));
+        Tlacitko("Menu", konecKarta, new Vector2(160, -120), new Vector2(240, 70), "MENU", new Color(0.55f, 0.42f, 0.36f), Color.white, 32, NavratNaTitulku);
 
         var stinGo = new GameObject("JumpscareStin");
         stinGo.transform.SetParent(canvGo.transform, false);

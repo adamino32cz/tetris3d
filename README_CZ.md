@@ -91,10 +91,10 @@ V menu SKINY jde napsat tajný kód a potvrdit Enterem (stejně jako u hada):
 - **ASTOLFO** — na všech stěnách kostek je stylizovaný portrét inspirovaný Astolfem (Fate/Apocrypha, Type-Moon); původní kresba, není oficiální artwork.
 - **ASTOLFO EXTRA** — každá figurka je jedna pózovaná zjednodušená 3D figurka (růžové vlasy, černá mašle, fialová mikina, černá sukně, bílé podkolenky, jeden cop a velká černá mašle) v póze podle tvaru kusu. Oficiální artwork ani volně redistribuovatelný VRM/FBX se použít nedaly, proto je portrét i model původní, inspirované typickým vzhledem postavy. Viz `Assets/Resources/SkinFaces/SkinFaces_ZDROJ.txt`.
 - **DEV** — neodemyká skin, ale skrytý panel **DEV / modifikace** v menu SKINY. Pro právě vybraný skin lze nastavit:
-  - zvuk při smazání řady: výchozí akord, **mňau** (CC0, Joseph Sardin / BigSoundBank č. 494), krátké neexplicitní **yamete kudasai** (vlastní TTS espeak-ng; YouTube klip pvF-nQh1Yyc nelze redistribuovat), nebo hláška **67** (vlastní TTS). Dokud panel není odemčený nebo je u skinu „Výchozí“, hraje se původní akord.
+  - zvuk při smazání řady: výchozí akord, **mňau** (CC0, Joseph Sardin / BigSoundBank č. 494), krátké neexplicitní **yamete kudasai** (**VOICEVOX:四国めたん**, styl あまあま), nebo hláška **67** (vlastní TTS). Dokud panel není odemčený nebo je u skinu „Výchozí“, hraje se původní akord.
   - obsah jumpscaru: výchozí **pavouk** (stávající módy video/anim/fotka/3D, klávesa K ve hře), nebo vyskakovací **Astolfo** / **Miku** / **67** se zvukem.
   Nastavení se ukládá (`Kostka.SkinSfx_*`, `Kostka.SkinJump_*`, `Kostka.DevUnlocked`).
 
 Test: `-skin neon`, `-skin 67`, `-skin miku`, `-skin miku_extra`, `-skin astolfo`, `-skin astolfo_extra`, `-dev`, `-openskins`, `-skinshots`.
 
-Zdroje zvuků: `Assets/Resources/SkinSfx/SkinSfx_ZDROJ.txt`.
+Zdroje zvuků: `Assets/Resources/SkinSfx/SkinSfx_ZDROJ.txt`. Yamete: VOICEVOX:四国めたん (https://voicevox.hiroshiba.jp/, https://zunko.jp/con_ongen_kiyaku.html).
